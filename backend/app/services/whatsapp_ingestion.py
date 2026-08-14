@@ -22,13 +22,12 @@ from app.schemas.enums import (
 )
 from app.services.audit import record_audit_event
 
-STATUS_PRECEDENCE: dict[MessageDeliveryStatus, int] = {
+SUCCESS_STATUS_ORDER: dict[MessageDeliveryStatus, int] = {
     MessageDeliveryStatus.PENDING: 0,
     MessageDeliveryStatus.ACCEPTED: 1,
     MessageDeliveryStatus.SENT: 2,
     MessageDeliveryStatus.DELIVERED: 3,
     MessageDeliveryStatus.READ: 4,
-    MessageDeliveryStatus.FAILED: 5,
 }
 
 META_STATUS_MAP: dict[str, MessageDeliveryStatus] = {
@@ -58,6 +57,53 @@ def parse_meta_timestamp(value: str | None) -> datetime:
         except (OverflowError, OSError, ValueError):
             pass
     return datetime.now(UTC)
+
+
+def should_apply_delivery_status_update(
+    current_status: MessageDeliveryStatus | None,
+    current_updated_at: datetime | None,
+    incoming_status: MessageDeliveryStatus,
+    incoming_updated_at: datetime,
+) -> bool:
+    if current_status is None:
+        return True
+
+    current_timestamp = _datetime_as_utc(current_updated_at)
+    incoming_timestamp = _datetime_as_utc(incoming_updated_at)
+    if incoming_timestamp is None:
+        return False
+    if current_timestamp is not None and incoming_timestamp < current_timestamp:
+        return False
+
+    if current_status == incoming_status:
+        return current_timestamp is None or incoming_timestamp > current_timestamp
+
+    if incoming_status == MessageDeliveryStatus.FAILED:
+        return current_status in {
+            MessageDeliveryStatus.PENDING,
+            MessageDeliveryStatus.ACCEPTED,
+            MessageDeliveryStatus.SENT,
+        }
+
+    # Meta status webhooks can arrive out of order; a newer success after FAILED is accepted
+    # as recovery and clears the previous provider error metadata.
+    if current_status == MessageDeliveryStatus.FAILED:
+        return current_timestamp is None or incoming_timestamp > current_timestamp
+
+    current_order = SUCCESS_STATUS_ORDER.get(current_status)
+    incoming_order = SUCCESS_STATUS_ORDER.get(incoming_status)
+    if current_order is None or incoming_order is None:
+        return False
+
+    return incoming_order > current_order
+
+
+def _datetime_as_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 class WhatsAppWebhookProcessor:
@@ -216,14 +262,23 @@ class WhatsAppWebhookProcessor:
             return False
 
         current = message.delivery_status
-        if current is not None and STATUS_PRECEDENCE[current] > STATUS_PRECEDENCE[mapped_status]:
+        status_updated_at = parse_meta_timestamp(status.timestamp)
+        if not should_apply_delivery_status_update(
+            current,
+            message.delivery_status_updated_at,
+            mapped_status,
+            status_updated_at,
+        ):
             return False
 
         message.delivery_status = mapped_status
-        message.delivery_status_updated_at = parse_meta_timestamp(status.timestamp)
+        message.delivery_status_updated_at = status_updated_at
         if mapped_status == MessageDeliveryStatus.FAILED:
             message.provider_error_code = status.provider_error_code
             message.provider_error_message = status.provider_error_message
+        else:
+            message.provider_error_code = None
+            message.provider_error_message = None
 
         await record_audit_event(
             session,

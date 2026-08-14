@@ -92,6 +92,75 @@ def test_whatsapp_status_payload_normalization() -> None:
     assert statuses[0].phone_number_id == "phone-id"
 
 
+def test_whatsapp_failed_status_numeric_error_code_normalization() -> None:
+    payload = {
+        "entry": [
+            {
+                "changes": [
+                    {
+                        "value": {
+                            "metadata": {"phone_number_id": "phone-id"},
+                            "statuses": [
+                                {
+                                    "id": "wamid.synthetic_failed_1",
+                                    "status": "failed",
+                                    "timestamp": "1799999999",
+                                    "recipient_id": "15550000001",
+                                    "errors": [
+                                        {
+                                            "code": 131014,
+                                            "title": "Synthetic failure",
+                                        }
+                                    ],
+                                }
+                            ],
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+
+    statuses = normalize_whatsapp_status_payload(payload)
+
+    assert len(statuses) == 1
+    assert statuses[0].provider_error_code == "131014"
+    assert statuses[0].provider_error_message == "Synthetic failure"
+
+
+def test_whatsapp_failed_status_string_error_code_normalization() -> None:
+    payload = {
+        "entry": [
+            {
+                "changes": [
+                    {
+                        "value": {
+                            "statuses": [
+                                {
+                                    "id": "wamid.synthetic_failed_2",
+                                    "status": "failed",
+                                    "errors": [
+                                        {
+                                            "code": "131014",
+                                            "message": "Synthetic message failure",
+                                        }
+                                    ],
+                                }
+                            ],
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+
+    statuses = normalize_whatsapp_status_payload(payload)
+
+    assert len(statuses) == 1
+    assert statuses[0].provider_error_code == "131014"
+    assert statuses[0].provider_error_message == "Synthetic message failure"
+
+
 def test_whatsapp_payload_normalization_handles_malformed_payload() -> None:
     assert normalize_whatsapp_webhook_payload({"entry": "not-a-list"}) == []
     assert normalize_whatsapp_webhook_payload({"entry": [{"changes": [{"value": "bad"}]}]}) == []

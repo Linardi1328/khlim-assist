@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from app.config.settings import Settings
 from app.db.models.conversation import Conversation
 from app.db.models.message import Message
@@ -13,6 +15,16 @@ from app.schemas.enums import (
 from app.services.whatsapp_ingestion import WhatsAppWebhookProcessor
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+
+def meta_datetime(epoch_seconds: int) -> datetime:
+    return datetime.fromtimestamp(epoch_seconds, tz=UTC)
+
+
+def assert_meta_epoch(value: datetime | None, epoch_seconds: int) -> None:
+    assert value is not None
+    normalized = value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+    assert normalized == meta_datetime(epoch_seconds)
 
 
 def incoming(
@@ -133,7 +145,11 @@ async def test_duplicate_database_constraint_path_is_idempotent(
     assert await message_count(db_session) == 1
 
 
-async def create_outbound_message(db_session: AsyncSession) -> Message:
+async def create_outbound_message(
+    db_session: AsyncSession,
+    status: MessageDeliveryStatus = MessageDeliveryStatus.ACCEPTED,
+    updated_at: datetime | None = None,
+) -> Message:
     conversation = Conversation(
         channel=ChannelName.WHATSAPP,
         external_user_ref="15550000001",
@@ -147,7 +163,8 @@ async def create_outbound_message(db_session: AsyncSession) -> Message:
         sender_type=SenderType.SYSTEM,
         content_type=ContentType.TEXT,
         text_content="Synthetic outbound",
-        delivery_status=MessageDeliveryStatus.ACCEPTED,
+        delivery_status=status,
+        delivery_status_updated_at=updated_at,
     )
     db_session.add(message)
     await db_session.commit()
@@ -158,7 +175,11 @@ async def test_delivery_status_progression_to_read(db_session: AsyncSession) -> 
     message = await create_outbound_message(db_session)
     processor = WhatsAppWebhookProcessor()
 
-    for status in ["sent", "delivered", "read"]:
+    for status, timestamp in [
+        ("sent", "1700000010"),
+        ("delivered", "1700000020"),
+        ("read", "1700000030"),
+    ]:
         await processor.process(
             db_session,
             [],
@@ -166,6 +187,7 @@ async def test_delivery_status_progression_to_read(db_session: AsyncSession) -> 
                 WhatsAppStatusNotification(
                     external_message_id="wamid.synthetic_outbound_status_1",
                     status=status,
+                    timestamp=timestamp,
                     phone_number_id=None,
                 )
             ],
@@ -173,6 +195,7 @@ async def test_delivery_status_progression_to_read(db_session: AsyncSession) -> 
 
     await db_session.refresh(message)
     assert message.delivery_status == MessageDeliveryStatus.READ
+    assert_meta_epoch(message.delivery_status_updated_at, 1700000030)
 
 
 async def test_delivery_status_failed_from_accepted(db_session: AsyncSession) -> None:
@@ -186,6 +209,7 @@ async def test_delivery_status_failed_from_accepted(db_session: AsyncSession) ->
             WhatsAppStatusNotification(
                 external_message_id="wamid.synthetic_outbound_status_1",
                 status="failed",
+                timestamp="1700000010",
                 provider_error_code="synthetic_error",
                 provider_error_message="Synthetic provider error",
             )
@@ -194,35 +218,178 @@ async def test_delivery_status_failed_from_accepted(db_session: AsyncSession) ->
 
     await db_session.refresh(message)
     assert message.delivery_status == MessageDeliveryStatus.FAILED
+    assert_meta_epoch(message.delivery_status_updated_at, 1700000010)
     assert message.provider_error_code == "synthetic_error"
+    assert message.provider_error_message == "Synthetic provider error"
 
 
-async def test_out_of_order_status_does_not_regress_read(db_session: AsyncSession) -> None:
-    message = await create_outbound_message(db_session)
-    processor = WhatsAppWebhookProcessor()
-    await processor.process(
+async def test_read_does_not_regress_to_older_delivered(db_session: AsyncSession) -> None:
+    message = await create_outbound_message(
         db_session,
-        [],
-        [
-            WhatsAppStatusNotification(
-                external_message_id=message.external_message_id or "",
-                status="read",
-            )
-        ],
+        status=MessageDeliveryStatus.READ,
+        updated_at=meta_datetime(1700000030),
     )
-    await processor.process(
+    processor = WhatsAppWebhookProcessor()
+
+    result = await processor.process(
         db_session,
         [],
         [
             WhatsAppStatusNotification(
                 external_message_id=message.external_message_id or "",
                 status="delivered",
+                timestamp="1700000020",
             )
         ],
     )
 
     await db_session.refresh(message)
+    assert result.statuses_updated == 0
     assert message.delivery_status == MessageDeliveryStatus.READ
+    assert_meta_epoch(message.delivery_status_updated_at, 1700000030)
+
+
+async def test_delivered_does_not_regress_to_older_sent(db_session: AsyncSession) -> None:
+    message = await create_outbound_message(
+        db_session,
+        status=MessageDeliveryStatus.DELIVERED,
+        updated_at=meta_datetime(1700000020),
+    )
+    processor = WhatsAppWebhookProcessor()
+
+    result = await processor.process(
+        db_session,
+        [],
+        [
+            WhatsAppStatusNotification(
+                external_message_id=message.external_message_id or "",
+                status="sent",
+                timestamp="1700000010",
+            )
+        ],
+    )
+
+    await db_session.refresh(message)
+    assert result.statuses_updated == 0
+    assert message.delivery_status == MessageDeliveryStatus.DELIVERED
+    assert_meta_epoch(message.delivery_status_updated_at, 1700000020)
+
+
+async def test_duplicate_status_with_older_timestamp_does_not_regress_timestamp(
+    db_session: AsyncSession,
+) -> None:
+    message = await create_outbound_message(
+        db_session,
+        status=MessageDeliveryStatus.DELIVERED,
+        updated_at=meta_datetime(1700000020),
+    )
+    processor = WhatsAppWebhookProcessor()
+
+    result = await processor.process(
+        db_session,
+        [],
+        [
+            WhatsAppStatusNotification(
+                external_message_id=message.external_message_id or "",
+                status="delivered",
+                timestamp="1700000010",
+            )
+        ],
+    )
+
+    await db_session.refresh(message)
+    assert result.statuses_updated == 0
+    assert message.delivery_status == MessageDeliveryStatus.DELIVERED
+    assert_meta_epoch(message.delivery_status_updated_at, 1700000020)
+
+
+async def test_duplicate_status_with_newer_timestamp_updates_timestamp(
+    db_session: AsyncSession,
+) -> None:
+    message = await create_outbound_message(
+        db_session,
+        status=MessageDeliveryStatus.DELIVERED,
+        updated_at=meta_datetime(1700000020),
+    )
+    processor = WhatsAppWebhookProcessor()
+
+    result = await processor.process(
+        db_session,
+        [],
+        [
+            WhatsAppStatusNotification(
+                external_message_id=message.external_message_id or "",
+                status="delivered",
+                timestamp="1700000030",
+            )
+        ],
+    )
+
+    await db_session.refresh(message)
+    assert result.statuses_updated == 1
+    assert message.delivery_status == MessageDeliveryStatus.DELIVERED
+    assert_meta_epoch(message.delivery_status_updated_at, 1700000030)
+
+
+async def test_stale_failed_status_does_not_overwrite_read(db_session: AsyncSession) -> None:
+    message = await create_outbound_message(
+        db_session,
+        status=MessageDeliveryStatus.READ,
+        updated_at=meta_datetime(1700000030),
+    )
+    processor = WhatsAppWebhookProcessor()
+
+    result = await processor.process(
+        db_session,
+        [],
+        [
+            WhatsAppStatusNotification(
+                external_message_id=message.external_message_id or "",
+                status="failed",
+                timestamp="1700000010",
+                provider_error_code="131014",
+                provider_error_message="Synthetic failure",
+            )
+        ],
+    )
+
+    await db_session.refresh(message)
+    assert result.statuses_updated == 0
+    assert message.delivery_status == MessageDeliveryStatus.READ
+    assert_meta_epoch(message.delivery_status_updated_at, 1700000030)
+    assert message.provider_error_code is None
+    assert message.provider_error_message is None
+
+
+async def test_failed_status_can_recover_to_newer_success(db_session: AsyncSession) -> None:
+    message = await create_outbound_message(
+        db_session,
+        status=MessageDeliveryStatus.FAILED,
+        updated_at=meta_datetime(1700000010),
+    )
+    message.provider_error_code = "131014"
+    message.provider_error_message = "Synthetic failure"
+    await db_session.commit()
+    processor = WhatsAppWebhookProcessor()
+
+    result = await processor.process(
+        db_session,
+        [],
+        [
+            WhatsAppStatusNotification(
+                external_message_id=message.external_message_id or "",
+                status="sent",
+                timestamp="1700000020",
+            )
+        ],
+    )
+
+    await db_session.refresh(message)
+    assert result.statuses_updated == 1
+    assert message.delivery_status == MessageDeliveryStatus.SENT
+    assert_meta_epoch(message.delivery_status_updated_at, 1700000020)
+    assert message.provider_error_code is None
+    assert message.provider_error_message is None
 
 
 async def test_unknown_status_message_id_is_acknowledged_without_message(
@@ -247,6 +414,7 @@ async def test_repeated_identical_status_is_safe(db_session: AsyncSession) -> No
     status = WhatsAppStatusNotification(
         external_message_id=message.external_message_id or "",
         status="delivered",
+        timestamp="1700000020",
     )
 
     await processor.process(db_session, [], [status])

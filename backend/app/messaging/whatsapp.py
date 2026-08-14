@@ -28,6 +28,14 @@ def _string_or_none(value: object) -> str | None:
     return None
 
 
+def _error_code_or_none(value: object) -> str | None:
+    if isinstance(value, str) and value:
+        return value
+    if isinstance(value, int) and not isinstance(value, bool):
+        return str(value)
+    return None
+
+
 class WhatsAppStatusNotification(BaseModel):
     external_message_id: str
     status: str
@@ -104,7 +112,7 @@ def normalize_whatsapp_status_payload(
                 errors = _as_sequence(status_map.get("errors"))
                 if errors:
                     first_error = _as_mapping(errors[0])
-                    error_code = _string_or_none(first_error.get("code"))
+                    error_code = _error_code_or_none(first_error.get("code"))
                     error_message = (
                         _string_or_none(first_error.get("title"))
                         or _string_or_none(first_error.get("message"))
