@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 
 from app.ai.evaluation import run_evaluation
-from app.ai.fake import FakeAIProvider
-from app.ai.openai_client import OpenAIProvider
+from app.ai.providers import create_ai_provider, provider_choices
 from app.config.settings import get_settings
+from app.schemas.enums import AIProviderName
 from app.schemas.knowledge import EvaluationCasesFile
 
 
@@ -14,8 +14,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run Phase 2 structured evaluation fixtures.")
     parser.add_argument(
         "--provider",
-        choices=["fake", "openai"],
-        default="fake",
+        choices=provider_choices(),
+        default=AIProviderName.FAKE.value,
         help="Provider for interpretation. fake is deterministic and CI-safe.",
     )
     parser.add_argument(
@@ -37,7 +37,7 @@ async def main() -> None:
         json.loads(Path(args.cases).read_text(encoding="utf-8"))
     )
     settings = get_settings()
-    provider = OpenAIProvider(settings) if args.provider == "openai" else FakeAIProvider()
+    provider = create_ai_provider(settings, args.provider)
     report = await run_evaluation(fixture.cases, provider)
 
     print(f"Total cases: {report.metrics.total_cases}")

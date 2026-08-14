@@ -4,6 +4,8 @@ from uuid import UUID
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.schemas.enums import AIProviderName
+
 DEFAULT_LOCAL_DATABASE_URL = "sqlite+aiosqlite:///./khlim_assist_dev.sqlite3"
 
 
@@ -14,9 +16,16 @@ class Settings(BaseSettings):
 
     database_url: str = DEFAULT_LOCAL_DATABASE_URL
 
+    ai_provider: AIProviderName = AIProviderName.GROQ
+
     openai_api_key: str | None = None
     openai_model: str | None = None
     openai_request_timeout_seconds: float = 30.0
+
+    groq_api_key: str | None = None
+    groq_model: str | None = "openai/gpt-oss-120b"
+    groq_api_base_url: str = "https://api.groq.com/openai/v1"
+    groq_request_timeout_seconds: float = 30.0
 
     ai_processing_enabled: bool = False
     ai_shadow_mode: bool = True
@@ -49,6 +58,8 @@ class Settings(BaseSettings):
     @field_validator(
         "openai_api_key",
         "openai_model",
+        "groq_api_key",
+        "groq_model",
         "meta_graph_api_version",
         "meta_waba_id",
         "meta_verify_token",

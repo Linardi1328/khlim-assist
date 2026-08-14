@@ -41,7 +41,7 @@ The AI layer may interpret participant language and draft friendly responses, bu
 
 - `backend/app/messaging`: channel-neutral inbound/outbound message abstractions.
 - `backend/app/api/webhooks`: provider-specific webhook adapters. Phase 1 includes signed WhatsApp webhook receive.
-- `backend/app/ai`: provider abstraction, lazy OpenAI Responses API wrapper, context builder, typed knowledge retrieval, response drafting, and evaluation support.
+- `backend/app/ai`: provider abstraction, lazy OpenAI/Groq Responses API wrappers, context builder, typed knowledge retrieval, response drafting, and evaluation support.
 - `backend/app/policy`: deterministic decision and routing rules.
 - `backend/app/db/models`: PostgreSQL-compatible SQLAlchemy models for events, FAQs, rules, conversations, messages, handoffs, PIC roles, audit logs, and AI processing runs.
 - `knowledge`: generalized FAQ taxonomy, sample event configuration, escalation policy, response style, and synthetic evaluation cases.
@@ -111,3 +111,16 @@ AIProcessingRun
 ```
 
 The LLM may classify intent and draft participant-friendly wording. It is never the source of truth for fees, dates, venues, eligibility rules, payment status, or registration status. Those values must come from approved event data, FAQEntry, EventRule, or another trusted future system.
+
+## AI Provider Boundary
+
+```text
+AIProvider
+    ├── FakeAIProvider     deterministic tests and CI
+    ├── OpenAIProvider     optional paid live provider
+    └── GroqProvider       zero-budget development live provider
+```
+
+Provider selection is isolated behind `create_ai_provider`. Retrieval, `DecisionEngine`, `AIProcessingRun`, and WhatsApp transport do not depend on Groq or OpenAI directly.
+
+OpenAI Responses calls keep `store=False`, `background=False`, and `tools=[]`. Groq Responses calls omit unsupported `store`, keep `background=False` and `tools=[]`, and do not send `previous_response_id` or tool definitions. KHLIM Assist does not use provider-side conversation persistence.

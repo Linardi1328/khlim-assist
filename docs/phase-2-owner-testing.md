@@ -1,6 +1,6 @@
 # Phase 2 Owner Testing
 
-Separate automated verification from optional live OpenAI verification.
+Separate automated verification from optional live provider verification. For environment parity with CI, owner live testing should ideally use Python 3.12.
 
 ## Automated Verification
 
@@ -19,8 +19,32 @@ Expected:
 
 - tests pass without Meta credentials
 - tests pass without OpenAI credentials
+- tests pass without Groq credentials
 - deterministic evaluation prints structured metrics
 - no WhatsApp message is sent by AI processing
+
+## Live Groq Verification
+
+This does not require live WhatsApp. Use synthetic or anonymized messages until Groq Zero Data Retention is enabled in Groq Data Controls.
+
+Configure local environment:
+
+```bash
+export AI_PROVIDER="groq"
+export GROQ_API_KEY="<OWNER_LOCAL_KEY>"
+export GROQ_MODEL="openai/gpt-oss-120b"
+export AI_PROCESSING_ENABLED=true
+export AI_SHADOW_MODE=true
+export AI_AUTO_REPLY_ENABLED=false
+```
+
+Run owner-only live Groq structured eval:
+
+```bash
+python -m app.scripts.ai_eval --provider groq
+```
+
+Report actual metrics. Do not claim Groq quality is approved until owner live evaluation passes.
 
 ## Live OpenAI Verification
 
@@ -30,6 +54,7 @@ Configure local environment:
 
 ```bash
 export DATABASE_URL="postgresql+asyncpg://khlim_assist@localhost:5433/khlim_assist"
+export AI_PROVIDER="openai"
 export OPENAI_API_KEY="<OWNER_OPENAI_API_KEY>"
 export OPENAI_MODEL="<SUPPORTED_MODEL_ID>"
 export AI_PROCESSING_ENABLED=true
@@ -66,7 +91,7 @@ python -m app.scripts.ai_eval --provider openai
 
 Report actual metrics. Do not claim production accuracy from synthetic fixtures.
 
-## Suggested Live OpenAI Prompts
+## Suggested Live Provider Prompts
 
 - `Where do I register?`
 - `U16 still got slot ah?`
@@ -85,4 +110,4 @@ Expected:
 - prompt-injection attempts do not alter approved facts
 - no WhatsApp auto-message is sent
 
-Live OpenAI owner gates remain unchecked until the owner performs them.
+Live provider owner gates remain unchecked until the owner performs them.
