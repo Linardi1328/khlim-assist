@@ -12,6 +12,7 @@ from app.schemas.enums import (
     FAQDisposition,
     FAQStatus,
     IntentType,
+    KnowledgeTopic,
     LanguageCode,
     LanguageMode,
     RuleStatus,
@@ -118,8 +119,16 @@ def test_multi_intent_interpretation_schema() -> None:
         language_mode=LanguageMode.MIXED,
         intents=[
             MessageIntent(type=IntentType.SCHEDULE, category="U16"),
-            MessageIntent(type=IntentType.TEAM_COMPOSITION, entities={"maximum_players": 4}),
-            MessageIntent(type=IntentType.ELIGIBILITY, entities={"foreign_player": True}),
+            MessageIntent(
+                type=IntentType.TEAM_COMPOSITION,
+                knowledge_topic=KnowledgeTopic.TEAM_MAX_PLAYERS,
+                entities={"maximum_players": 4},
+            ),
+            MessageIntent(
+                type=IntentType.ELIGIBILITY,
+                knowledge_topic=KnowledgeTopic.FOREIGN_PLAYERS_ALLOWED,
+                entities={"foreign_player": True},
+            ),
         ],
     )
 
@@ -128,6 +137,7 @@ def test_multi_intent_interpretation_schema() -> None:
         IntentType.TEAM_COMPOSITION,
         IntentType.ELIGIBILITY,
     ]
+    assert interpreted.intents[1].knowledge_topic == KnowledgeTopic.TEAM_MAX_PLAYERS
 
 
 def test_interpretation_requires_clarification_fields_when_flagged() -> None:

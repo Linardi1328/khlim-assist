@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 from typing import Any, Protocol, cast
 
 from openai import (
@@ -24,7 +25,7 @@ from app.ai.base import (
 )
 from app.ai.prompts import INTERPRETATION_SYSTEM_PROMPT, RESPONSE_STYLE_SYSTEM_PROMPT
 from app.config.settings import Settings, get_settings
-from app.schemas.enums import IntentType
+from app.schemas.enums import IntentType, KnowledgeTopic
 from app.schemas.interpretation import InterpretationRequest, InterpretedMessage
 
 
@@ -79,6 +80,7 @@ class OpenAIProvider:
             "conversation_id": request.conversation_id,
             "recent_context": [item.model_dump() for item in request.recent_messages],
             "allowed_intent_values": [item.value for item in IntentType],
+            "allowed_knowledge_topic_values": [item.value for item in KnowledgeTopic],
         }
         try:
             response = await self._create_response(
@@ -88,8 +90,8 @@ class OpenAIProvider:
                 text_format={
                     "type": "json_schema",
                     "name": "khlim_interpreted_message",
-                    "schema": InterpretedMessage.model_json_schema(),
-                    "strict": False,
+                    "schema": _strict_interpretation_schema(),
+                    "strict": True,
                 },
             )
         except AIProviderResponseError:
@@ -188,6 +190,62 @@ def _response_output_text(response: object) -> str:
             return "".join(chunks)
 
     raise AIProviderResponseError("OpenAI response did not include output text")
+
+
+def _strict_interpretation_schema() -> dict[str, Any]:
+    schema = deepcopy(InterpretedMessage.model_json_schema())
+    message_intent = schema.get("$defs", {}).get("MessageIntent")
+    if isinstance(message_intent, dict):
+        properties = message_intent.get("properties")
+        if isinstance(properties, dict):
+            properties["entities"] = _strict_entities_schema()
+    _normalize_strict_schema(schema)
+    return schema
+
+
+def _strict_entities_schema() -> dict[str, Any]:
+    nullable_string = {"anyOf": [{"type": "string"}, {"type": "null"}]}
+    nullable_integer = {"anyOf": [{"type": "integer"}, {"type": "null"}]}
+    nullable_boolean = {"anyOf": [{"type": "boolean"}, {"type": "null"}]}
+    properties: dict[str, Any] = {
+        "birth_year": nullable_integer,
+        "foreign_player": nullable_boolean,
+        "foreign_player_count": nullable_boolean,
+        "national_player": nullable_boolean,
+        "single_player": nullable_boolean,
+        "whole_team": nullable_boolean,
+        "mixed_gender": nullable_boolean,
+        "minimum_players": nullable_integer,
+        "maximum_players": nullable_integer,
+        "requested_players": nullable_integer,
+        "registration_fee": nullable_boolean,
+        "category_fee": nullable_boolean,
+        "early_bird_fee": nullable_boolean,
+        "early_bird_deadline": nullable_boolean,
+        "requested_category": nullable_string,
+    }
+    return {
+        "type": "object",
+        "title": "Entities",
+        "properties": properties,
+        "required": list(properties),
+        "additionalProperties": False,
+    }
+
+
+def _normalize_strict_schema(node: object) -> None:
+    if isinstance(node, dict):
+        node.pop("default", None)
+        if node.get("type") == "object":
+            properties = node.get("properties")
+            if isinstance(properties, dict):
+                node["required"] = list(properties)
+            node["additionalProperties"] = False
+        for value in node.values():
+            _normalize_strict_schema(value)
+    elif isinstance(node, list):
+        for item in node:
+            _normalize_strict_schema(item)
 
 
 def _metadata_from_response(response: object) -> AIProviderCallMetadata:

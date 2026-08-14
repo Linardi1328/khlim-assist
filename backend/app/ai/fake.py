@@ -1,5 +1,5 @@
 from app.ai.base import AIProviderCallMetadata, GeneratedResponse, ResponseGenerationRequest
-from app.schemas.enums import IntentType, LanguageCode, LanguageMode
+from app.schemas.enums import IntentType, KnowledgeTopic, LanguageCode, LanguageMode
 from app.schemas.interpretation import InterpretationRequest, InterpretedMessage, MessageIntent
 
 
@@ -139,7 +139,12 @@ def _detect_intents(lowered: str) -> list[MessageIntent]:
     has_merchandise = "shirt" in lowered or "merch" in lowered or "jersey" in lowered
     has_order_lookup = any(intent.type == IntentType.MERCHANDISE_ORDER for intent in intents)
     if has_merchandise and not has_order_lookup:
-        intents.append(MessageIntent(type=IntentType.MERCHANDISE_INFO))
+        intents.append(
+            MessageIntent(
+                type=IntentType.MERCHANDISE_INFO,
+                knowledge_topic=_merchandise_topic(lowered),
+            )
+        )
     if (
         not has_merchandise
         and (
@@ -150,7 +155,13 @@ def _detect_intents(lowered: str) -> list[MessageIntent]:
             or ("berapa" in tokens and "harga" in tokens)
         )
     ):
-        intents.append(MessageIntent(type=IntentType.FEE, category=_category(lowered)))
+        intents.append(
+            MessageIntent(
+                type=IntentType.FEE,
+                category=_category(lowered),
+                knowledge_topic=_fee_topic(lowered),
+            )
+        )
     if (
         any(
             token in lowered
@@ -161,7 +172,12 @@ def _detect_intents(lowered: str) -> list[MessageIntent]:
         and not any(intent.type == IntentType.REGISTRATION_STATUS for intent in intents)
         and not any(intent.type == IntentType.LATE_REGISTRATION for intent in intents)
     ):
-        intents.append(MessageIntent(type=IntentType.REGISTRATION_INFO))
+        intents.append(
+            MessageIntent(
+                type=IntentType.REGISTRATION_INFO,
+                knowledge_topic=_registration_topic(lowered),
+            )
+        )
     if (
         any(
             token in lowered
@@ -169,7 +185,13 @@ def _detect_intents(lowered: str) -> list[MessageIntent]:
         )
         or {"dekat", "mana"}.issubset(tokens)
     ) and not any(intent.type == IntentType.LATE_REGISTRATION for intent in intents):
-        intents.append(MessageIntent(type=IntentType.SCHEDULE, category=_category(lowered)))
+        intents.append(
+            MessageIntent(
+                type=IntentType.SCHEDULE,
+                category=_category(lowered),
+                knowledge_topic=_schedule_topic(lowered),
+            )
+        )
     has_player_count_request = any(
         token in lowered for token in ["max", "maximum", "minimum", "players", "orang"]
     )
@@ -180,10 +202,42 @@ def _detect_intents(lowered: str) -> list[MessageIntent]:
     if has_player_count_request and (
         explicit_player_count_request or not has_foreign_player_request
     ):
-        intents.append(MessageIntent(type=IntentType.TEAM_COMPOSITION, category=_category(lowered)))
-    if any(token in lowered for token in ["foreigner", "foreign", "外国人"]):
         intents.append(
-            MessageIntent(type=IntentType.ELIGIBILITY, entities={"foreign_player": True})
+            MessageIntent(
+                type=IntentType.TEAM_COMPOSITION,
+                category=_category(lowered),
+                knowledge_topic=_team_topic(lowered),
+                entities=_team_entities(lowered),
+            )
+        )
+    if "national" in lowered:
+        intents.append(
+            MessageIntent(
+                type=IntentType.PLAYER_RESTRICTIONS,
+                knowledge_topic=KnowledgeTopic.NATIONAL_PLAYER_POLICY,
+                entities={"national_player": True},
+            )
+        )
+    elif has_foreign_player_request and (
+        "how many foreign" in lowered
+        or "max foreign" in lowered
+        or "maximum foreign" in lowered
+        or "多少外国" in lowered
+    ):
+        intents.append(
+            MessageIntent(
+                type=IntentType.PLAYER_RESTRICTIONS,
+                knowledge_topic=KnowledgeTopic.FOREIGN_PLAYER_MAX,
+                entities={"foreign_player_count": True},
+            )
+        )
+    elif any(token in lowered for token in ["foreigner", "foreign", "外国人"]):
+        intents.append(
+            MessageIntent(
+                type=IntentType.ELIGIBILITY,
+                knowledge_topic=KnowledgeTopic.FOREIGN_PLAYERS_ALLOWED,
+                entities={"foreign_player": True},
+            )
         )
     if any(
         token in lowered
@@ -194,13 +248,25 @@ def _detect_intents(lowered: str) -> list[MessageIntent]:
             MessageIntent(
                 type=IntentType.ELIGIBILITY,
                 category=_category(lowered),
+                knowledge_topic=KnowledgeTopic.ELIGIBILITY_CATEGORY,
                 entities=entities,
             )
         )
     if "check in" in lowered:
-        intents.append(MessageIntent(type=IntentType.CHECK_IN))
+        intents.append(
+            MessageIntent(
+                type=IntentType.CHECK_IN,
+                knowledge_topic=_check_in_topic(lowered),
+                entities=_check_in_entities(lowered),
+            )
+        )
     if "rules" in lowered and "ignore all rules" not in lowered:
-        intents.append(MessageIntent(type=IntentType.RULES))
+        intents.append(
+            MessageIntent(
+                type=IntentType.RULES,
+                knowledge_topic=KnowledgeTopic.RULES_LINK,
+            )
+        )
 
     unique: list[MessageIntent] = []
     seen: set[IntentType] = set()
@@ -229,6 +295,84 @@ def _category(text: str) -> str | None:
         if category.lower() in text:
             return category
     return None
+
+
+def _registration_topic(text: str) -> KnowledgeTopic:
+    tokens = _tokens(text)
+    if "deadline" in text:
+        return KnowledgeTopic.REGISTRATION_DEADLINE
+    if "close" in text:
+        return KnowledgeTopic.REGISTRATION_CLOSE_TIME
+    if "open" in text or "buka" in tokens:
+        return KnowledgeTopic.REGISTRATION_OPEN
+    if "where" in tokens or "link" in text or "qr" in tokens or "报名" in text:
+        return KnowledgeTopic.REGISTRATION_LINK
+    return KnowledgeTopic.REGISTRATION_METHOD
+
+
+def _fee_topic(text: str) -> KnowledgeTopic:
+    if "early" in text or "bird" in text:
+        if "end" in text or "deadline" in text or "until" in text:
+            return KnowledgeTopic.EARLY_BIRD_DEADLINE
+        return KnowledgeTopic.EARLY_BIRD_FEE
+    if "different" in text:
+        return KnowledgeTopic.CATEGORY_FEE
+    return KnowledgeTopic.REGISTRATION_FEE
+
+
+def _schedule_topic(text: str) -> KnowledgeTopic:
+    if "release" in text or "final schedule" in text:
+        return KnowledgeTopic.SCHEDULE_RELEASE
+    if "both" in text:
+        return KnowledgeTopic.KEEP_BOTH_EVENT_DAYS
+    if "same day" in text:
+        return KnowledgeTopic.CATEGORIES_SAME_DAY
+    return KnowledgeTopic.CATEGORY_PLAYING_DATE
+
+
+def _team_topic(text: str) -> KnowledgeTopic:
+    if "3" in text or "three" in text:
+        return KnowledgeTopic.TEAM_THREE_PLAYERS
+    if "min" in text or "minimum" in text:
+        return KnowledgeTopic.TEAM_MIN_PLAYERS
+    if "mix" in text or "boys and girls" in text:
+        return KnowledgeTopic.TEAM_MIXED_GENDER
+    return KnowledgeTopic.TEAM_MAX_PLAYERS
+
+
+def _team_entities(text: str) -> dict[str, int | bool]:
+    topic = _team_topic(text)
+    if topic == KnowledgeTopic.TEAM_THREE_PLAYERS:
+        return {"requested_players": 3}
+    if topic == KnowledgeTopic.TEAM_MIN_PLAYERS:
+        return {"minimum_players": 1}
+    if topic == KnowledgeTopic.TEAM_MIXED_GENDER:
+        return {"mixed_gender": True}
+    return {"maximum_players": 1}
+
+
+def _check_in_topic(text: str) -> KnowledgeTopic:
+    if "one player" in text or "1 player" in text or "single" in text:
+        return KnowledgeTopic.CHECK_IN_SINGLE_PLAYER
+    return KnowledgeTopic.CHECK_IN_WHOLE_TEAM
+
+
+def _check_in_entities(text: str) -> dict[str, bool]:
+    if _check_in_topic(text) == KnowledgeTopic.CHECK_IN_SINGLE_PLAYER:
+        return {"single_player": True}
+    return {"whole_team": True}
+
+
+def _merchandise_topic(text: str) -> KnowledgeTopic:
+    if "included" in text:
+        return KnowledgeTopic.MERCHANDISE_INCLUDED
+    if "price" in text or "how much" in text:
+        return KnowledgeTopic.MERCHANDISE_PRICE
+    if "deadline" in text or "preorder" in text:
+        return KnowledgeTopic.MERCHANDISE_PREORDER_DEADLINE
+    if "delivery fee" in text:
+        return KnowledgeTopic.MERCHANDISE_DELIVERY_FEE
+    return KnowledgeTopic.MERCHANDISE_ORDER_LINK
 
 
 def _eligibility_entities(text: str) -> dict[str, int]:

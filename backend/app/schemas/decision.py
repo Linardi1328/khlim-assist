@@ -1,12 +1,13 @@
 from pydantic import BaseModel, Field
 
-from app.schemas.enums import DecisionLevel, IntentType, PICRole, ReasonCode
+from app.schemas.enums import DecisionLevel, IntentType, KnowledgeTopic, PICRole, ReasonCode
 
 type JsonValue = str | int | float | bool | None | list[JsonValue] | dict[str, JsonValue]
 
 
 class KnowledgeEvidence(BaseModel):
     intent_type: IntentType | None = None
+    knowledge_topic: KnowledgeTopic | None = None
     approved_knowledge_found: bool
     event_data_confirmed: bool
     requires_lookup: bool = False
@@ -48,6 +49,13 @@ class DecisionContext(BaseModel):
 
     def green_ready_for(self, intent_types: list[IntentType]) -> bool:
         if self.requires_human_authority or not self.evidence:
+            return False
+        if (
+            self.any_approved_knowledge_missing
+            or self.any_event_data_unconfirmed
+            or self.any_lookup_required
+            or any(evidence.requires_human for evidence in self.evidence)
+        ):
             return False
         return all(
             any(evidence.supports_green for evidence in self.evidence_for_intent(intent_type))

@@ -18,7 +18,7 @@ from app.db.models.conversation import Conversation
 from app.db.models.message import Message
 from app.policy.decision_engine import DecisionEngine
 from app.schemas.decision import DecisionResult
-from app.schemas.enums import AIProcessingStatus, ContentType
+from app.schemas.enums import AIProcessingStatus, ContentType, MessageDirection, SenderType
 from app.schemas.interpretation import InterpretationRequest, InterpretedMessage
 from app.schemas.retrieval import KnowledgeQuery, KnowledgeResult
 
@@ -69,7 +69,19 @@ class AIProcessingService:
                 await session.commit()
             return run
 
-        if message.content_type != ContentType.TEXT or not message.text_content:
+        if (
+            _enum_value(message.direction) != MessageDirection.INBOUND.value
+            or _enum_value(message.sender_type) != SenderType.PARTICIPANT.value
+        ):
+            run.processing_status = AIProcessingStatus.SKIPPED
+            run.error_code = "NOT_INBOUND_PARTICIPANT_MESSAGE"
+            run.error_message = "Only inbound participant messages are eligible for AI processing"
+            run.completed_at = _utcnow()
+            if not dry_run:
+                await session.commit()
+            return run
+
+        if _enum_value(message.content_type) != ContentType.TEXT.value or not message.text_content:
             run.processing_status = AIProcessingStatus.SKIPPED
             run.error_code = "UNSUPPORTED_MESSAGE"
             run.error_message = "Only text messages are supported for Phase 2 AI processing"

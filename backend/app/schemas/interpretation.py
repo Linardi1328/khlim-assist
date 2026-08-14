@@ -2,7 +2,7 @@ from typing import Self
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.schemas.enums import IntentType, LanguageCode, LanguageMode, ReasonCode
+from app.schemas.enums import IntentType, KnowledgeTopic, LanguageCode, LanguageMode, ReasonCode
 
 EntityValue = str | int | float | bool | None
 
@@ -10,6 +10,7 @@ EntityValue = str | int | float | bool | None
 class MessageIntent(BaseModel):
     type: IntentType
     category: str | None = None
+    knowledge_topic: KnowledgeTopic | None = None
     entities: dict[str, EntityValue] = Field(default_factory=dict)
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     reason_code: ReasonCode | None = None

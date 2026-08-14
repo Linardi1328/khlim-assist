@@ -32,7 +32,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def create_text_message(db_session: AsyncSession, text: str) -> tuple[Event, Message]:
+async def create_text_message(
+    db_session: AsyncSession,
+    text: str,
+    *,
+    direction: MessageDirection = MessageDirection.INBOUND,
+    sender_type: SenderType = SenderType.PARTICIPANT,
+    content_type: ContentType = ContentType.TEXT,
+) -> tuple[Event, Message]:
     event = Event(
         slug="ai-processing-event",
         name="AI Processing Event",
@@ -65,10 +72,10 @@ async def create_text_message(db_session: AsyncSession, text: str) -> tuple[Even
     await db_session.flush()
     message = Message(
         conversation_id=conversation.id,
-        direction=MessageDirection.INBOUND,
-        sender_type=SenderType.PARTICIPANT,
-        content_type=ContentType.TEXT,
-        text_content=text,
+        direction=direction,
+        sender_type=sender_type,
+        content_type=content_type,
+        text_content=text if content_type == ContentType.TEXT else None,
     )
     db_session.add(message)
     await db_session.commit()
@@ -122,6 +129,78 @@ async def test_ai_processing_failure_is_persisted_safely(db_session: AsyncSessio
     assert run.processing_status == AIProcessingStatus.FAILED
     assert run.error_code == "AIProviderTimeoutError"
     assert "secret" not in (run.error_message or "").lower()
+
+
+@pytest.mark.parametrize(
+    ("direction", "sender_type"),
+    [
+        (MessageDirection.OUTBOUND, SenderType.SYSTEM),
+        (MessageDirection.OUTBOUND, SenderType.HUMAN),
+        (MessageDirection.INBOUND, SenderType.SYSTEM),
+    ],
+)
+async def test_ai_processing_skips_non_participant_inbound_without_provider_call(
+    db_session: AsyncSession,
+    direction: MessageDirection,
+    sender_type: SenderType,
+) -> None:
+    _event, message = await create_text_message(
+        db_session,
+        "How much is U16?",
+        direction=direction,
+        sender_type=sender_type,
+    )
+    provider = CountingProvider()
+    service = AIProcessingService(
+        provider=provider,
+        settings=Settings(ai_processing_enabled=True),
+    )
+
+    run = await service.process_message(db_session, message.id)
+
+    assert run.processing_status == AIProcessingStatus.SKIPPED
+    assert run.error_code == "NOT_INBOUND_PARTICIPANT_MESSAGE"
+    assert provider.interpret_calls == 0
+    assert provider.response_calls == 0
+
+
+async def test_ai_processing_allows_inbound_participant_text(
+    db_session: AsyncSession,
+) -> None:
+    _event, message = await create_text_message(db_session, "How much is U16?")
+    provider = CountingProvider()
+    service = AIProcessingService(
+        provider=provider,
+        settings=Settings(ai_processing_enabled=True),
+    )
+
+    run = await service.process_message(db_session, message.id)
+
+    assert run.processing_status == AIProcessingStatus.COMPLETED
+    assert provider.interpret_calls == 1
+    assert provider.response_calls == 1
+
+
+async def test_ai_processing_skips_inbound_participant_non_text_without_provider_call(
+    db_session: AsyncSession,
+) -> None:
+    _event, message = await create_text_message(
+        db_session,
+        "ignored",
+        content_type=ContentType.IMAGE,
+    )
+    provider = CountingProvider()
+    service = AIProcessingService(
+        provider=provider,
+        settings=Settings(ai_processing_enabled=True),
+    )
+
+    run = await service.process_message(db_session, message.id)
+
+    assert run.processing_status == AIProcessingStatus.SKIPPED
+    assert run.error_code == "UNSUPPORTED_MESSAGE"
+    assert provider.interpret_calls == 0
+    assert provider.response_calls == 0
 
 
 async def test_prompt_injection_text_cannot_replace_approved_fee(
@@ -189,3 +268,18 @@ class FailingProvider:
 
     async def generate_response(self, request: ResponseGenerationRequest) -> GeneratedResponse:
         return GeneratedResponse(text="Should not happen")
+
+
+class CountingProvider(FakeAIProvider):
+    def __init__(self) -> None:
+        super().__init__()
+        self.interpret_calls = 0
+        self.response_calls = 0
+
+    async def interpret_message(self, request: InterpretationRequest) -> InterpretedMessage:
+        self.interpret_calls += 1
+        return await super().interpret_message(request)
+
+    async def generate_response(self, request: ResponseGenerationRequest) -> GeneratedResponse:
+        self.response_calls += 1
+        return await super().generate_response(request)

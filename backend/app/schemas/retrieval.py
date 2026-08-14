@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.schemas.decision import JsonValue, KnowledgeEvidence
-from app.schemas.enums import IntentType
+from app.schemas.enums import IntentType, KnowledgeTopic
 from app.schemas.interpretation import InterpretedMessage
 
 
@@ -16,6 +16,7 @@ class KnowledgeQuery(BaseModel):
 
 class KnowledgeResult(BaseModel):
     intent_type: IntentType
+    knowledge_topic: KnowledgeTopic | None = None
     found: bool
     source_type: str | None = None
     source_identifier: str | None = None
@@ -39,6 +40,7 @@ class KnowledgeResult(BaseModel):
         source_label = self.source_label
         return KnowledgeEvidence(
             intent_type=self.intent_type,
+            knowledge_topic=self.knowledge_topic,
             approved_knowledge_found=self.found,
             event_data_confirmed=self.confirmed,
             requires_lookup=self.requires_lookup,

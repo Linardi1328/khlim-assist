@@ -55,6 +55,19 @@ async def test_openai_provider_successful_structured_interpretation() -> None:
     assert responses.calls[0]["background"] is False
     assert responses.calls[0]["tools"] == []
     assert responses.calls[0]["model"] == "test-model"
+    text_config = responses.calls[0]["text"]
+    assert isinstance(text_config, dict)
+    format_config = text_config["format"]
+    assert isinstance(format_config, dict)
+    assert format_config["type"] == "json_schema"
+    assert format_config["strict"] is True
+    schema = format_config["schema"]
+    assert isinstance(schema, dict)
+    assert schema["additionalProperties"] is False
+    intent_schema = schema["$defs"]["MessageIntent"]
+    assert intent_schema["additionalProperties"] is False
+    assert "knowledge_topic" in intent_schema["properties"]
+    assert intent_schema["properties"]["entities"]["additionalProperties"] is False
     assert provider.interpretation_metadata is not None
     assert provider.interpretation_metadata.total_tokens == 15
 
