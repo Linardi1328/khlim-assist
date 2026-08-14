@@ -108,7 +108,7 @@ docker compose up -d db
 Use this local development URL:
 
 ```bash
-export DATABASE_URL="postgresql+asyncpg://khlim_assist@localhost:5432/khlim_assist"
+export DATABASE_URL="postgresql+asyncpg://khlim_assist@localhost:5433/khlim_assist"
 ```
 
 Run migrations:

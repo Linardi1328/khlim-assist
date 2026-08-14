@@ -1,5 +1,5 @@
 from app.policy.routing import route_reason
-from app.schemas.decision import DecisionResult
+from app.schemas.decision import DecisionContext, DecisionResult
 from app.schemas.enums import DecisionLevel, IntentType, ReasonCode
 from app.schemas.interpretation import InterpretedMessage, MessageIntent
 
@@ -55,9 +55,17 @@ GREEN_INTENTS = {
 
 
 class DecisionEngine:
-    def decide(self, interpreted: InterpretedMessage) -> DecisionResult:
+    def decide(
+        self,
+        interpreted: InterpretedMessage,
+        context: DecisionContext | None = None,
+    ) -> DecisionResult:
         if interpreted.participant_requested_human:
             return self._red(ReasonCode.HUMAN_REQUESTED, ["participant requested a human"])
+
+        red_reason = self._first_reason_for_intents(interpreted.intents, RED_INTENTS)
+        if red_reason is not None:
+            return self._red(red_reason, ["human authority is required"])
 
         clarification_fields = self._clarification_fields(interpreted)
         if interpreted.requires_clarification or clarification_fields:
@@ -68,10 +76,6 @@ class DecisionEngine:
                 clarification_fields=clarification_fields or interpreted.clarification_fields,
                 notes=["clarification required before an answer can be trusted"],
             )
-
-        red_reason = self._first_reason_for_intents(interpreted.intents, RED_INTENTS)
-        if red_reason is not None:
-            return self._red(red_reason, ["human authority is required"])
 
         yellow_reason = self._first_reason_for_intents(interpreted.intents, YELLOW_INTENTS)
         if yellow_reason is not None:
@@ -84,13 +88,20 @@ class DecisionEngine:
                 notes=["trusted lookup is required before a final answer"],
             )
 
+        if context is not None and context.requires_human_authority:
+            return self._red(ReasonCode.UNKNOWN_HIGH_RISK, ["human authority is required"])
+
         if all(intent.type in GREEN_INTENTS for intent in interpreted.intents):
-            return DecisionResult(
-                level=DecisionLevel.GREEN,
-                auto_reply_allowed=True,
-                requires_human=False,
-                notes=["approved knowledge or rules may answer this request"],
-            )
+            if context is not None and context.green_ready_for(
+                [intent.type for intent in interpreted.intents]
+            ):
+                return DecisionResult(
+                    level=DecisionLevel.GREEN,
+                    auto_reply_allowed=True,
+                    requires_human=False,
+                    notes=["approved knowledge or rules may answer this request"],
+                )
+            return self._yellow_for_missing_green_evidence(context)
 
         return self._red(ReasonCode.UNKNOWN_HIGH_RISK, ["unsupported request type"])
 
@@ -121,5 +132,27 @@ class DecisionEngine:
             assigned_pic_role=route_reason(reason_code),
             auto_reply_allowed=False,
             requires_human=True,
+            notes=notes,
+        )
+
+    def _yellow_for_missing_green_evidence(
+        self,
+        context: DecisionContext | None,
+    ) -> DecisionResult:
+        notes = ["approved knowledge or confirmed event data is required before GREEN"]
+        if context is None or not context.evidence:
+            notes.append("no knowledge evidence was provided")
+        else:
+            if context.any_approved_knowledge_missing:
+                notes.append("approved knowledge was not found")
+            if context.any_event_data_unconfirmed:
+                notes.append("event data is not confirmed")
+            if context.any_lookup_required:
+                notes.append("trusted lookup is required")
+
+        return DecisionResult(
+            level=DecisionLevel.YELLOW,
+            auto_reply_allowed=False,
+            requires_human=False,
             notes=notes,
         )

@@ -1,6 +1,7 @@
 from app.policy.decision_engine import DecisionEngine
 from app.policy.escalation import escalation_for_reason
 from app.policy.routing import route_reason, route_text
+from app.schemas.decision import DecisionContext, KnowledgeEvidence
 from app.schemas.enums import (
     DecisionLevel,
     IntentType,
@@ -20,6 +21,21 @@ def interpreted(*intents: MessageIntent) -> InterpretedMessage:
     )
 
 
+def approved_context(*intent_types: IntentType) -> DecisionContext:
+    return DecisionContext(
+        evidence=[
+            KnowledgeEvidence(
+                intent_type=intent_type,
+                approved_knowledge_found=True,
+                event_data_confirmed=True,
+                requires_lookup=False,
+                knowledge_source="sample_event_config",
+            )
+            for intent_type in intent_types
+        ]
+    )
+
+
 def test_decision_engine_green_for_complete_approved_rule() -> None:
     result = DecisionEngine().decide(
         interpreted(
@@ -28,7 +44,8 @@ def test_decision_engine_green_for_complete_approved_rule() -> None:
                 category="U16",
                 entities={"birth_year": 2012},
             )
-        )
+        ),
+        approved_context(IntentType.ELIGIBILITY),
     )
 
     assert result.level == DecisionLevel.GREEN
@@ -72,6 +89,120 @@ def test_decision_engine_red_when_participant_requests_human() -> None:
     assert result.level == DecisionLevel.RED
     assert result.reason_code == ReasonCode.HUMAN_REQUESTED
     assert result.assigned_pic_role == PICRole.GENERAL_ADMIN
+
+
+def test_decision_engine_red_plus_green_is_red() -> None:
+    result = DecisionEngine().decide(
+        interpreted(
+            MessageIntent(type=IntentType.ELIGIBILITY_EXCEPTION),
+            MessageIntent(type=IntentType.FEE),
+        ),
+        approved_context(IntentType.FEE),
+    )
+
+    assert result.level == DecisionLevel.RED
+    assert result.reason_code == ReasonCode.ELIGIBILITY_EXCEPTION
+    assert result.assigned_pic_role == PICRole.COMPETITION
+
+
+def test_decision_engine_red_plus_yellow_is_red() -> None:
+    result = DecisionEngine().decide(
+        interpreted(
+            MessageIntent(type=IntentType.REFUND),
+            MessageIntent(type=IntentType.PAYMENT_STATUS),
+        )
+    )
+
+    assert result.level == DecisionLevel.RED
+    assert result.reason_code == ReasonCode.REFUND_REQUEST
+    assert result.assigned_pic_role == PICRole.FINANCE
+
+
+def test_decision_engine_yellow_plus_green_is_yellow() -> None:
+    result = DecisionEngine().decide(
+        interpreted(
+            MessageIntent(type=IntentType.PAYMENT_STATUS),
+            MessageIntent(type=IntentType.REGISTRATION_INFO),
+        ),
+        approved_context(IntentType.REGISTRATION_INFO),
+    )
+
+    assert result.level == DecisionLevel.YELLOW
+    assert result.reason_code == ReasonCode.PAYMENT_VERIFICATION
+    assert result.assigned_pic_role == PICRole.FINANCE
+
+
+def test_decision_engine_green_plus_green_requires_valid_evidence() -> None:
+    result = DecisionEngine().decide(
+        interpreted(
+            MessageIntent(type=IntentType.REGISTRATION_INFO),
+            MessageIntent(type=IntentType.FEE),
+        ),
+        approved_context(IntentType.REGISTRATION_INFO, IntentType.FEE),
+    )
+
+    assert result.level == DecisionLevel.GREEN
+    assert result.auto_reply_allowed is True
+
+
+def test_decision_engine_green_with_no_approved_knowledge_is_not_green() -> None:
+    result = DecisionEngine().decide(
+        interpreted(MessageIntent(type=IntentType.FEE)),
+        DecisionContext(
+            evidence=[
+                KnowledgeEvidence(
+                    intent_type=IntentType.FEE,
+                    approved_knowledge_found=False,
+                    event_data_confirmed=True,
+                    requires_lookup=False,
+                    knowledge_source="sample_event_config",
+                )
+            ]
+        ),
+    )
+
+    assert result.level == DecisionLevel.YELLOW
+    assert result.auto_reply_allowed is False
+    assert "approved knowledge was not found" in result.notes
+
+
+def test_decision_engine_green_without_evidence_context_is_not_green() -> None:
+    result = DecisionEngine().decide(interpreted(MessageIntent(type=IntentType.FEE)))
+
+    assert result.level == DecisionLevel.YELLOW
+    assert result.auto_reply_allowed is False
+    assert "no knowledge evidence was provided" in result.notes
+
+
+def test_decision_engine_green_with_unconfirmed_event_data_is_not_green() -> None:
+    result = DecisionEngine().decide(
+        interpreted(MessageIntent(type=IntentType.SCHEDULE)),
+        DecisionContext(
+            evidence=[
+                KnowledgeEvidence(
+                    intent_type=IntentType.SCHEDULE,
+                    approved_knowledge_found=True,
+                    event_data_confirmed=False,
+                    requires_lookup=False,
+                    knowledge_source="sample_event_config",
+                )
+            ]
+        ),
+    )
+
+    assert result.level == DecisionLevel.YELLOW
+    assert result.auto_reply_allowed is False
+    assert "event data is not confirmed" in result.notes
+
+
+def test_decision_engine_green_with_valid_approved_evidence_is_green() -> None:
+    result = DecisionEngine().decide(
+        interpreted(MessageIntent(type=IntentType.REGISTRATION_INFO)),
+        approved_context(IntentType.REGISTRATION_INFO),
+    )
+
+    assert result.level == DecisionLevel.GREEN
+    assert result.auto_reply_allowed is True
 
 
 def test_pic_routing_by_reason_code() -> None:
