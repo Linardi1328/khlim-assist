@@ -10,6 +10,7 @@ from app.db.models.common import TimestampMixin
 from app.schemas.enums import EventStatus
 
 if TYPE_CHECKING:
+    from app.db.models.ai_processing_run import AIProcessingRun
     from app.db.models.conversation import Conversation
     from app.db.models.event_rule import EventRule
     from app.db.models.faq_entry import FAQEntry
@@ -47,5 +48,9 @@ class Event(TimestampMixin, Base):
     )
     handoffs: Mapped[list["HandoffCase"]] = relationship(
         "HandoffCase",
+        back_populates="event",
+    )
+    ai_processing_runs: Mapped[list["AIProcessingRun"]] = relationship(
+        "AIProcessingRun",
         back_populates="event",
     )

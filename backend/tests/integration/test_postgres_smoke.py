@@ -5,9 +5,12 @@ from uuid import uuid4
 
 import pytest
 from alembic.config import Config
+from app.ai.fake import FakeAIProvider
 from app.config.settings import get_settings
+from app.db.models.ai_processing_run import AIProcessingRun
 from app.db.models.conversation import Conversation
 from app.db.models.event import Event
+from app.db.models.event_rule import EventRule
 from app.db.models.handoff import HandoffCase
 from app.db.models.message import Message
 from app.db.session import normalize_async_database_url
@@ -17,6 +20,7 @@ from app.messaging.whatsapp_client import WhatsAppSendResponse
 from app.schemas.enums import (
     ChannelName,
     ContentType,
+    DecisionLevel,
     EventStatus,
     HandoffPriority,
     HandoffStatus,
@@ -24,7 +28,10 @@ from app.schemas.enums import (
     MessageDirection,
     PICRole,
     ReasonCode,
+    RuleStatus,
+    SenderType,
 )
+from app.services.ai_processing import AIProcessingService
 from app.services.whatsapp_ingestion import WhatsAppWebhookProcessor
 from app.services.whatsapp_outbound import WhatsAppOutboundService
 from sqlalchemy import select, text
@@ -200,3 +207,59 @@ async def test_postgres_phase_1_outbound_and_status_persistence(
     assert fetched is not None
     assert fetched.direction == MessageDirection.OUTBOUND
     assert fetched.delivery_status == MessageDeliveryStatus.DELIVERED
+
+
+async def test_postgres_phase_2_ai_processing_persistence(
+    postgres_session: AsyncSession,
+) -> None:
+    event = Event(
+        slug=f"postgres-ai-event-{uuid4().hex}",
+        name="PostgreSQL AI Event",
+        status=EventStatus.PUBLISHED,
+        registration_open=True,
+        registration_url="https://example.com/postgres-ai",
+        is_active=True,
+    )
+    postgres_session.add(event)
+    await postgres_session.flush()
+    postgres_session.add(
+        EventRule(
+            event_id=event.id,
+            category="U16",
+            rule_type="registration_fee",
+            value={"amount_myr": 180},
+            status=RuleStatus.ACTIVE,
+        )
+    )
+    conversation = Conversation(
+        channel=ChannelName.WHATSAPP,
+        external_user_ref=f"anon_pg_ai_user_{uuid4().hex}",
+        event_id=event.id,
+    )
+    postgres_session.add(conversation)
+    await postgres_session.flush()
+    message = Message(
+        conversation_id=conversation.id,
+        external_message_id=f"wamid.synthetic_pg_ai_{uuid4().hex}",
+        direction=MessageDirection.INBOUND,
+        sender_type=SenderType.PARTICIPANT,
+        content_type=ContentType.TEXT,
+        text_content="How much is U16?",
+    )
+    postgres_session.add(message)
+    await postgres_session.commit()
+
+    run = await AIProcessingService(
+        provider=FakeAIProvider(),
+        settings=get_settings().model_copy(update={"ai_processing_enabled": True}),
+    ).process_message(postgres_session, message.id)
+
+    fetched = await postgres_session.scalar(
+        select(AIProcessingRun).where(AIProcessingRun.id == run.id)
+    )
+    assert fetched is not None
+    assert fetched.message_id == message.id
+    assert fetched.conversation_id == conversation.id
+    assert fetched.interpreted_intents[0]["type"] == "fee"
+    assert fetched.decision_level == DecisionLevel.GREEN
+    assert fetched.draft_response is not None

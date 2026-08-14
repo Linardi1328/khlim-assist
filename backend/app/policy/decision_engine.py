@@ -5,16 +5,21 @@ from app.schemas.interpretation import InterpretedMessage, MessageIntent
 
 INTENT_REASON_CODES: dict[IntentType, ReasonCode] = {
     IntentType.REGISTRATION_STATUS: ReasonCode.REGISTRATION_STATUS_LOOKUP,
+    IntentType.REGISTRATION_EXCEPTION: ReasonCode.REGISTRATION_EXCEPTION,
     IntentType.LATE_REGISTRATION: ReasonCode.REGISTRATION_EXCEPTION,
     IntentType.ELIGIBILITY_EXCEPTION: ReasonCode.ELIGIBILITY_EXCEPTION,
     IntentType.SCHEDULE_EXCEPTION: ReasonCode.SCHEDULE_EXCEPTION,
     IntentType.RULE_DISPUTE: ReasonCode.RULE_DISPUTE,
+    IntentType.PAYMENT_VERIFICATION: ReasonCode.PAYMENT_VERIFICATION,
     IntentType.PAYMENT_STATUS: ReasonCode.PAYMENT_VERIFICATION,
+    IntentType.REFUND_REQUEST: ReasonCode.REFUND_REQUEST,
     IntentType.REFUND: ReasonCode.REFUND_REQUEST,
     IntentType.OVERPAYMENT: ReasonCode.OVERPAYMENT,
     IntentType.WITHDRAWAL: ReasonCode.WITHDRAWAL,
     IntentType.WALKOVER_DISPUTE: ReasonCode.WALKOVER_DISPUTE,
+    IntentType.MERCHANDISE_ORDER_LOOKUP: ReasonCode.MERCHANDISE_ORDER_LOOKUP,
     IntentType.MERCHANDISE_ORDER: ReasonCode.MERCHANDISE_ORDER_LOOKUP,
+    IntentType.TECHNICAL_REGISTRATION_FAILURE: ReasonCode.TECHNICAL_REGISTRATION_FAILURE,
     IntentType.TECHNICAL_REGISTRATION: ReasonCode.TECHNICAL_REGISTRATION_FAILURE,
     IntentType.COMMERCIAL: ReasonCode.COMMERCIAL_ENQUIRY,
     IntentType.HUMAN_REQUEST: ReasonCode.HUMAN_REQUESTED,
@@ -23,16 +28,21 @@ INTENT_REASON_CODES: dict[IntentType, ReasonCode] = {
 
 YELLOW_INTENTS = {
     IntentType.REGISTRATION_STATUS,
+    IntentType.PAYMENT_VERIFICATION,
     IntentType.PAYMENT_STATUS,
+    IntentType.MERCHANDISE_ORDER_LOOKUP,
     IntentType.MERCHANDISE_ORDER,
+    IntentType.TECHNICAL_REGISTRATION_FAILURE,
     IntentType.TECHNICAL_REGISTRATION,
 }
 
 RED_INTENTS = {
+    IntentType.REGISTRATION_EXCEPTION,
     IntentType.LATE_REGISTRATION,
     IntentType.ELIGIBILITY_EXCEPTION,
     IntentType.SCHEDULE_EXCEPTION,
     IntentType.RULE_DISPUTE,
+    IntentType.REFUND_REQUEST,
     IntentType.REFUND,
     IntentType.OVERPAYMENT,
     IntentType.WITHDRAWAL,
@@ -43,15 +53,37 @@ RED_INTENTS = {
 }
 
 GREEN_INTENTS = {
+    IntentType.REGISTRATION,
     IntentType.REGISTRATION_INFO,
+    IntentType.FEES,
     IntentType.FEE,
+    IntentType.EARLY_BIRD,
     IntentType.TEAM_COMPOSITION,
     IntentType.ELIGIBILITY,
+    IntentType.PLAYER_RESTRICTIONS,
     IntentType.SCHEDULE,
     IntentType.RULES,
     IntentType.CHECK_IN,
+    IntentType.PAYMENT,
     IntentType.MERCHANDISE_INFO,
+    IntentType.GENERAL,
 }
+
+RED_REASON_PRIORITY = [
+    IntentType.REFUND_REQUEST,
+    IntentType.REFUND,
+    IntentType.OVERPAYMENT,
+    IntentType.REGISTRATION_EXCEPTION,
+    IntentType.LATE_REGISTRATION,
+    IntentType.ELIGIBILITY_EXCEPTION,
+    IntentType.SCHEDULE_EXCEPTION,
+    IntentType.WALKOVER_DISPUTE,
+    IntentType.WITHDRAWAL,
+    IntentType.RULE_DISPUTE,
+    IntentType.COMMERCIAL,
+    IntentType.HUMAN_REQUEST,
+    IntentType.UNKNOWN,
+]
 
 
 class DecisionEngine:
@@ -63,7 +95,11 @@ class DecisionEngine:
         if interpreted.participant_requested_human:
             return self._red(ReasonCode.HUMAN_REQUESTED, ["participant requested a human"])
 
-        red_reason = self._first_reason_for_intents(interpreted.intents, RED_INTENTS)
+        red_reason = self._first_reason_for_intents(
+            interpreted.intents,
+            RED_INTENTS,
+            priority=RED_REASON_PRIORITY,
+        )
         if red_reason is not None:
             return self._red(red_reason, ["human authority is required"])
 
@@ -109,6 +145,8 @@ class DecisionEngine:
         fields = list(interpreted.clarification_fields)
         for intent in interpreted.intents:
             if intent.type == IntentType.ELIGIBILITY:
+                if intent.entities.get("foreign_player") is True:
+                    continue
                 if "category" not in intent.entities and not intent.category:
                     fields.append("category")
                 if "birth_year" not in intent.entities:
@@ -119,7 +157,14 @@ class DecisionEngine:
         self,
         intents: list[MessageIntent],
         intent_types: set[IntentType],
+        priority: list[IntentType] | None = None,
     ) -> ReasonCode | None:
+        if priority is not None:
+            by_type = {intent.type: intent for intent in intents if intent.type in intent_types}
+            for intent_type in priority:
+                intent = by_type.get(intent_type)
+                if intent is not None:
+                    return intent.reason_code or INTENT_REASON_CODES[intent.type]
         for intent in intents:
             if intent.type in intent_types:
                 return intent.reason_code or INTENT_REASON_CODES[intent.type]

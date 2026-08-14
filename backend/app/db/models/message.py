@@ -16,6 +16,7 @@ from app.schemas.enums import (
 )
 
 if TYPE_CHECKING:
+    from app.db.models.ai_processing_run import AIProcessingRun
     from app.db.models.conversation import Conversation
 
 
@@ -60,3 +61,7 @@ class Message(CreatedAtMixin, Base):
     provider_error_message: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     conversation: Mapped["Conversation"] = relationship("Conversation", back_populates="messages")
+    ai_processing_runs: Mapped[list["AIProcessingRun"]] = relationship(
+        "AIProcessingRun",
+        back_populates="message",
+    )

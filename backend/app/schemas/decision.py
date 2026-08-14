@@ -2,14 +2,25 @@ from pydantic import BaseModel, Field
 
 from app.schemas.enums import DecisionLevel, IntentType, PICRole, ReasonCode
 
+type JsonValue = str | int | float | bool | None | list[JsonValue] | dict[str, JsonValue]
+
 
 class KnowledgeEvidence(BaseModel):
     intent_type: IntentType | None = None
     approved_knowledge_found: bool
     event_data_confirmed: bool
     requires_lookup: bool = False
+    requires_human: bool = False
     knowledge_source: str | None = None
     rule_source: str | None = None
+    source_type: str | None = None
+    source_identifier: str | None = None
+    event_id: str | None = None
+    faq_key: str | None = None
+    rule_type: str | None = None
+    value: JsonValue = None
+    confirmed: bool = False
+    last_updated_at: str | None = None
 
     @property
     def has_named_source(self) -> bool:

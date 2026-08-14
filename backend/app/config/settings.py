@@ -15,6 +15,13 @@ class Settings(BaseSettings):
     database_url: str = DEFAULT_LOCAL_DATABASE_URL
 
     openai_api_key: str | None = None
+    openai_model: str | None = None
+    openai_request_timeout_seconds: float = 30.0
+
+    ai_processing_enabled: bool = False
+    ai_shadow_mode: bool = True
+    ai_auto_reply_enabled: bool = False
+    ai_context_message_limit: int = 10
 
     meta_graph_api_base_url: str = "https://graph.facebook.com"
     meta_graph_api_version: str | None = None
@@ -41,6 +48,7 @@ class Settings(BaseSettings):
 
     @field_validator(
         "openai_api_key",
+        "openai_model",
         "meta_graph_api_version",
         "meta_waba_id",
         "meta_verify_token",

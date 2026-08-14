@@ -32,8 +32,14 @@ class InterpretedMessage(BaseModel):
         return self
 
 
+class InterpretationContextMessage(BaseModel):
+    role: str = Field(pattern=r"^(participant|khlim|system)$")
+    text: str = Field(min_length=1)
+
+
 class InterpretationRequest(BaseModel):
     message_text: str = Field(min_length=1)
     channel: str
     event_id: str | None = None
     conversation_id: str | None = None
+    recent_messages: list[InterpretationContextMessage] = Field(default_factory=list)

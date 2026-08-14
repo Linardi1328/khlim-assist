@@ -289,7 +289,12 @@ async def test_whatsapp_webhook_post_persists_and_does_not_send_reply(
     monkeypatch.setattr(WhatsAppCloudClient, "send_text_message", fail_meta_send)
     monkeypatch.setattr(OpenAIProvider, "interpret_message", fail_openai_interpret)
 
-    settings = Settings(meta_verify_token="verify-token", meta_app_secret="test-secret")
+    settings = Settings(
+        meta_verify_token="verify-token",
+        meta_app_secret="test-secret",
+        ai_processing_enabled=True,
+        ai_auto_reply_enabled=True,
+    )
     app = app_with_db(settings, db_session)
     payload = load_fixture("whatsapp_text_message.json")
     raw_body, headers = signed_body(payload, "test-secret")

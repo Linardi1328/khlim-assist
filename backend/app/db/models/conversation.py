@@ -10,6 +10,7 @@ from app.db.models.common import TimestampMixin
 from app.schemas.enums import ChannelName, ConversationState, LanguageCode
 
 if TYPE_CHECKING:
+    from app.db.models.ai_processing_run import AIProcessingRun
     from app.db.models.event import Event
     from app.db.models.handoff import HandoffCase
     from app.db.models.message import Message
@@ -43,6 +44,10 @@ class Conversation(TimestampMixin, Base):
 
     event: Mapped["Event | None"] = relationship("Event", back_populates="conversations")
     messages: Mapped[list["Message"]] = relationship("Message", back_populates="conversation")
+    ai_processing_runs: Mapped[list["AIProcessingRun"]] = relationship(
+        "AIProcessingRun",
+        back_populates="conversation",
+    )
     handoffs: Mapped[list["HandoffCase"]] = relationship(
         "HandoffCase",
         back_populates="conversation",

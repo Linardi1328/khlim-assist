@@ -32,3 +32,14 @@ def test_phase_1_allowed_recipients_parse_comma_separated_values() -> None:
     settings = Settings(whatsapp_allowed_recipients="15550000001, 15550000002")
 
     assert settings.whatsapp_allowed_recipients == ("15550000001", "15550000002")
+
+
+def test_phase_2_ai_settings_defaults_are_safe() -> None:
+    settings = Settings()
+
+    assert settings.openai_model is None
+    assert settings.openai_request_timeout_seconds == 30
+    assert settings.ai_processing_enabled is False
+    assert settings.ai_shadow_mode is True
+    assert settings.ai_auto_reply_enabled is False
+    assert settings.ai_context_message_limit == 10

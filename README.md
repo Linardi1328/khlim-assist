@@ -2,15 +2,15 @@
 
 KHLIM Assist is a multilingual AI assistant foundation for KHLIM Basketball event support. The long-term system will support WhatsApp, Instagram, English, Bahasa Melayu, Mandarin, mixed-language Malaysian conversations, FAQ answering, event-specific knowledge, context, escalation, PIC routing, registration/payment lookups, and auditability.
 
-KHLIM Assist v0.1 Phase 1 enables controlled WhatsApp sandbox transport.
+KHLIM Assist v0.1 Phase 2 implements AI FAQ interpretation, approved knowledge retrieval, deterministic decisions, and draft response generation.
 
 AI participant auto-replies remain disabled.
 
 ## Current Status
 
-This repository is at `KHLIM Assist v0.1 Phase 1 — WhatsApp Sandbox Integration`.
+This repository is at `KHLIM Assist v0.1 Phase 2 — AI FAQ Engine`.
 
-Phase 1 proves secure Meta WhatsApp Cloud API sandbox transport: signed webhook receive, inbound persistence, duplicate protection, controlled manual outbound sends, and delivery-status tracking. Production bot behavior and AI replies are intentionally deferred.
+Phase 2 proves the reasoning layer: multilingual interpretation, multi-intent extraction, typed knowledge retrieval, GREEN/YELLOW/RED policy decisions, and KHLIM-style draft responses. WhatsApp AI auto-replies remain intentionally disabled.
 
 ## Phase 0 Scope
 
@@ -47,6 +47,22 @@ Phase 1 proves secure Meta WhatsApp Cloud API sandbox transport: signed webhook 
 - PostgreSQL migration and smoke tests
 - Meta sandbox setup and owner testing documentation
 
+## Phase 2 Scope
+
+- OpenAI Responses API provider behind the existing AI abstraction
+- fail-closed AI settings with processing disabled by default
+- deterministic conversation context builder with bounded recent text messages
+- typed knowledge query/result/evidence objects
+- DB-first approved knowledge retrieval from Event, FAQEntry, and EventRule records
+- DecisionEngine integration using typed evidence
+- KHLIM-style draft response generation
+- AIProcessingRun persistence for completed, failed, skipped, and pending runs
+- manual shadow-processing CLI for one stored message
+- recent AI analysis CLI
+- synthetic evaluation runner over `knowledge/evaluation_cases.json`
+- PostgreSQL migration and smoke test for AI analysis persistence
+- prompt-injection and no-auto-send boundary tests
+
 ## Architecture Overview
 
 ```text
@@ -60,14 +76,6 @@ Message Normalization
      ↓
 Conversation Context
      ↓
-[STOP HERE IN PHASE 1]
-```
-
-Future phases continue:
-
-```text
-Conversation Context
-     ↓
 AI Interpretation
      ↓
 Knowledge / Rule Retrieval
@@ -76,7 +84,15 @@ Deterministic Policy Engine
      ↓
 GREEN / YELLOW / RED
      ↓
-Response or Human Handoff
+Draft Response Stored
+     ↓
+[STOP HERE IN PHASE 2]
+```
+
+Future phases continue only after explicit approval:
+
+```text
+Human Handoff Workflow / Authorized Sending
 ```
 
 Rules decide. AI communicates.
@@ -117,6 +133,12 @@ Do not add real production secrets to source control.
 - `LOG_LEVEL`
 - `DATABASE_URL`
 - `OPENAI_API_KEY`
+- `OPENAI_MODEL`
+- `OPENAI_REQUEST_TIMEOUT_SECONDS`
+- `AI_PROCESSING_ENABLED`
+- `AI_SHADOW_MODE`
+- `AI_AUTO_REPLY_ENABLED`
+- `AI_CONTEXT_MESSAGE_LIMIT`
 - `META_GRAPH_API_BASE_URL`
 - `META_GRAPH_API_VERSION`
 - `META_WABA_ID`
@@ -213,6 +235,34 @@ Inspect recent stored WhatsApp messages:
 python -m app.scripts.whatsapp_recent --limit 10
 ```
 
+## AI Shadow CLIs
+
+Process one stored message through Phase 2 shadow analysis:
+
+```bash
+python -m app.scripts.ai_process_message --message-id "<MESSAGE_UUID>"
+```
+
+Use the deterministic local provider for synthetic testing:
+
+```bash
+python -m app.scripts.ai_process_message --message-id "<MESSAGE_UUID>" --provider fake
+```
+
+Inspect recent AI analyses:
+
+```bash
+python -m app.scripts.ai_recent --limit 10
+```
+
+Run deterministic evaluation fixtures:
+
+```bash
+python -m app.scripts.ai_eval --provider fake
+```
+
+All Phase 2 AI outputs are stored drafts only. `AI_AUTO_REPLY_ENABLED=true` does not connect drafts to WhatsApp outbound sending in Phase 2.
+
 ## Privacy Principles
 
 - Keep KHLIM knowledge separate from participant data.
@@ -228,8 +278,8 @@ python -m app.scripts.whatsapp_recent --limit 10
 
 ## Current Limitations
 
-Phase 1 does not implement live automatic WhatsApp replies, FAQ automation, OpenAI inbound processing, Instagram integration, voice-note transcription, OCR, payment verification, registration-system lookup, merchandise stock lookup, admin dashboard, participant frontend, refunds, schedule changes, production deployment, marketing sends, broadcasts, or autonomous workflows.
+Phase 2 does not implement live automatic WhatsApp replies, production OpenAI background processing, human handoff workflow, PIC dashboard, registration lookup, payment lookup, Instagram integration, voice-note transcription, OCR, merchandise stock lookup, participant frontend, refunds, schedule changes, production deployment, marketing sends, broadcasts, or autonomous workflows.
 
 ## Next Planned Phase
 
-The next phase should build on verified WhatsApp sandbox transport. Do not begin it until Phase 1 owner live testing and review are complete.
+The next phase should build the human handoff workflow and reviewer-approved operational controls. Do not begin it until Phase 2 owner live OpenAI testing and review are complete.
