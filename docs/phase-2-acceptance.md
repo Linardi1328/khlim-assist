@@ -31,7 +31,7 @@
 - [x] ruff passes
 - [x] mypy passes
 - [x] pytest passes
-- [ ] CI passes
+- [x] CI passes
 - [x] no real participant PII
 - [x] no secrets
 
