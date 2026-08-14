@@ -16,3 +16,19 @@ def test_settings_accept_active_event_uuid() -> None:
     settings = Settings(active_event_id=str(event_id))
 
     assert settings.active_event_id == event_id
+
+
+def test_phase_1_whatsapp_settings_defaults_are_safe() -> None:
+    settings = Settings()
+
+    assert settings.meta_graph_api_base_url == "https://graph.facebook.com"
+    assert settings.meta_graph_api_version is None
+    assert settings.whatsapp_sandbox_mode is True
+    assert settings.whatsapp_outbound_enabled is False
+    assert settings.whatsapp_allowed_recipients == ()
+
+
+def test_phase_1_allowed_recipients_parse_comma_separated_values() -> None:
+    settings = Settings(whatsapp_allowed_recipients="15550000001, 15550000002")
+
+    assert settings.whatsapp_allowed_recipients == ("15550000001", "15550000002")

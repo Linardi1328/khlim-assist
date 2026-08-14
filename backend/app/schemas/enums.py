@@ -94,6 +94,15 @@ class MessageDirection(StrEnum):
     OUTBOUND = "OUTBOUND"
 
 
+class MessageDeliveryStatus(StrEnum):
+    PENDING = "PENDING"
+    ACCEPTED = "ACCEPTED"
+    SENT = "SENT"
+    DELIVERED = "DELIVERED"
+    READ = "READ"
+    FAILED = "FAILED"
+
+
 class SenderType(StrEnum):
     PARTICIPANT = "PARTICIPANT"
     AI = "AI"

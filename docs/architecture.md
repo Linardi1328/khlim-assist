@@ -51,3 +51,33 @@ The AI layer may interpret participant language and draft friendly responses, bu
 - `RED`: human authority is required.
 
 Phase 0 stops before live automated replies. Future phases can connect a WhatsApp sandbox, trusted registration/payment systems, and authorized human workflows.
+
+## Phase 1 Transport Boundary
+
+Phase 1 adds secure WhatsApp sandbox transport and persistence, but still stops before AI.
+
+```text
+WhatsApp
+    ↓
+Meta Cloud API
+    ↓
+Signed Webhook
+    ↓
+WhatsApp Adapter
+    ↓
+Conversation + Message DB
+    ↓
+[STOP HERE]
+```
+
+Future Phase 2 work may continue:
+
+```text
+AI Interpretation
+    ↓
+Knowledge Retrieval
+    ↓
+Decision Engine
+```
+
+Automatic participant replies remain disabled in Phase 1.

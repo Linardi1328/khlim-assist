@@ -9,15 +9,24 @@ from app.config.settings import get_settings
 from app.db.models.conversation import Conversation
 from app.db.models.event import Event
 from app.db.models.handoff import HandoffCase
+from app.db.models.message import Message
 from app.db.session import normalize_async_database_url
+from app.messaging.base import IncomingMessage
+from app.messaging.whatsapp import WhatsAppStatusNotification
+from app.messaging.whatsapp_client import WhatsAppSendResponse
 from app.schemas.enums import (
     ChannelName,
+    ContentType,
     EventStatus,
     HandoffPriority,
     HandoffStatus,
+    MessageDeliveryStatus,
+    MessageDirection,
     PICRole,
     ReasonCode,
 )
+from app.services.whatsapp_ingestion import WhatsAppWebhookProcessor
+from app.services.whatsapp_outbound import WhatsAppOutboundService
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -123,3 +132,71 @@ async def test_postgres_handoff_persistence(postgres_session: AsyncSession) -> N
 
     assert fetched is not None
     assert fetched.assigned_pic_role == PICRole.FINANCE
+
+
+async def test_postgres_phase_1_inbound_duplicate_idempotency(
+    postgres_session: AsyncSession,
+) -> None:
+    external_message_id = f"wamid.synthetic_pg_inbound_{uuid4().hex}"
+    incoming = IncomingMessage(
+        channel=ChannelName.WHATSAPP,
+        external_user_ref=f"anon_pg_user_{uuid4().hex}",
+        external_message_id=external_message_id,
+        content_type=ContentType.TEXT,
+        text="KHLIM Assist Phase 1 inbound test",
+        metadata={"provider": "meta_whatsapp", "timestamp": "1700000000"},
+    )
+    processor = WhatsAppWebhookProcessor()
+
+    first = await processor.process(postgres_session, [incoming], [])
+    second = await processor.process(postgres_session, [incoming], [])
+
+    rows = list(
+        await postgres_session.scalars(
+            select(Message).where(Message.external_message_id == external_message_id)
+        )
+    )
+    assert first.messages_persisted == 1
+    assert second.duplicates_ignored == 1
+    assert len(rows) == 1
+
+
+class FakePostgresWhatsAppClient:
+    async def send_text_message(self, to: str, text: str) -> WhatsAppSendResponse:
+        return WhatsAppSendResponse(
+            provider_message_id=f"wamid.synthetic_pg_outbound_{uuid4().hex}"
+        )
+
+    async def send_template_message(
+        self,
+        to: str,
+        template_name: str,
+        language_code: str,
+    ) -> WhatsAppSendResponse:
+        return WhatsAppSendResponse(
+            provider_message_id=f"wamid.synthetic_pg_template_{uuid4().hex}"
+        )
+
+
+async def test_postgres_phase_1_outbound_and_status_persistence(
+    postgres_session: AsyncSession,
+) -> None:
+    service = WhatsAppOutboundService(client=FakePostgresWhatsAppClient())  # type: ignore[arg-type]
+
+    message = await service.send_text(postgres_session, "15550000001", "Synthetic outbound")
+    processor = WhatsAppWebhookProcessor()
+    await processor.process(
+        postgres_session,
+        [],
+        [
+            WhatsAppStatusNotification(
+                external_message_id=message.external_message_id or "",
+                status="delivered",
+            )
+        ],
+    )
+
+    fetched = await postgres_session.scalar(select(Message).where(Message.id == message.id))
+    assert fetched is not None
+    assert fetched.direction == MessageDirection.OUTBOUND
+    assert fetched.delivery_status == MessageDeliveryStatus.DELIVERED
