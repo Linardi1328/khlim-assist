@@ -1,6 +1,6 @@
 # Architecture
 
-KHLIM Assist v0.1 Phase 0 establishes the backend foundation only. It does not send live participant replies.
+KHLIM Assist v0.1 Phase 2 establishes the WhatsApp transport and AI FAQ reasoning foundation. It does not send live participant AI replies.
 
 ## Flow
 
@@ -23,7 +23,9 @@ Deterministic Policy Engine
      ↓
 GREEN / YELLOW / RED
      ↓
-Response or Human Handoff
+Draft Response Stored
+     ↓
+[STOP HERE IN PHASE 2]
 ```
 
 ## Core Principle
@@ -33,15 +35,15 @@ Rules decide.
 AI communicates.
 ```
 
-The AI layer may interpret participant language and draft friendly responses, but it must not decide permissions. Refunds, exceptions, schedule changes, reserved slots, withdrawals, disciplinary issues, and special eligibility decisions belong to deterministic policy and human authority.
+The AI layer may interpret participant language and draft friendly responses, but it must not decide permissions or source tournament facts. Refunds, exceptions, schedule changes, reserved slots, withdrawals, disciplinary issues, and special eligibility decisions belong to deterministic policy and human authority.
 
 ## Components
 
 - `backend/app/messaging`: channel-neutral inbound/outbound message abstractions.
-- `backend/app/api/webhooks`: provider-specific webhook adapters. Phase 0 includes WhatsApp parsing only.
-- `backend/app/ai`: provider abstraction plus a lazy OpenAI SDK wrapper. No external calls happen at startup.
+- `backend/app/api/webhooks`: provider-specific webhook adapters. Phase 1 includes signed WhatsApp webhook receive.
+- `backend/app/ai`: provider abstraction, lazy OpenAI Responses API wrapper, context builder, typed knowledge retrieval, response drafting, and evaluation support.
 - `backend/app/policy`: deterministic decision and routing rules.
-- `backend/app/db/models`: PostgreSQL-compatible SQLAlchemy models for events, FAQs, rules, conversations, messages, handoffs, PIC roles, and audit logs.
+- `backend/app/db/models`: PostgreSQL-compatible SQLAlchemy models for events, FAQs, rules, conversations, messages, handoffs, PIC roles, audit logs, and AI processing runs.
 - `knowledge`: generalized FAQ taxonomy, sample event configuration, escalation policy, response style, and synthetic evaluation cases.
 
 ## Decision Levels
@@ -50,7 +52,7 @@ The AI layer may interpret participant language and draft friendly responses, bu
 - `YELLOW`: clarification or trusted lookup is required.
 - `RED`: human authority is required.
 
-Phase 0 stops before live automated replies. Future phases can connect a WhatsApp sandbox, trusted registration/payment systems, and authorized human workflows.
+Phase 2 stops before live automated replies. Future phases can connect trusted registration/payment systems and authorized human workflows.
 
 ## Phase 1 Transport Boundary
 
@@ -70,7 +72,7 @@ Conversation + Message DB
 [STOP HERE]
 ```
 
-Future Phase 2 work may continue:
+Phase 2 continues manually or through an explicit shadow-processing command:
 
 ```text
 AI Interpretation
@@ -78,6 +80,34 @@ AI Interpretation
 Knowledge Retrieval
     ↓
 Decision Engine
+    ↓
+Draft Stored
+    ↓
+[STOP HERE]
 ```
 
-Automatic participant replies remain disabled in Phase 1.
+Automatic participant replies remain disabled in Phase 2. `AI_AUTO_REPLY_ENABLED` is not wired to WhatsApp outbound sending.
+
+## Phase 2 AI FAQ Boundary
+
+```text
+Participant message
+     ↓
+Conversation + Message DB
+     ↓
+Manual Shadow Processor
+     ↓
+Bounded Conversation Context
+     ↓
+AI Interpretation
+     ↓
+Approved Knowledge Retrieval
+     ↓
+DecisionEngine
+     ↓
+Draft Response
+     ↓
+AIProcessingRun
+```
+
+The LLM may classify intent and draft participant-friendly wording. It is never the source of truth for fees, dates, venues, eligibility rules, payment status, or registration status. Those values must come from approved event data, FAQEntry, EventRule, or another trusted future system.

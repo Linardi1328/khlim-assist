@@ -2,7 +2,7 @@ from typing import Self
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.schemas.enums import IntentType, LanguageCode, LanguageMode, ReasonCode
+from app.schemas.enums import IntentType, KnowledgeTopic, LanguageCode, LanguageMode, ReasonCode
 
 EntityValue = str | int | float | bool | None
 
@@ -10,6 +10,7 @@ EntityValue = str | int | float | bool | None
 class MessageIntent(BaseModel):
     type: IntentType
     category: str | None = None
+    knowledge_topic: KnowledgeTopic | None = None
     entities: dict[str, EntityValue] = Field(default_factory=dict)
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     reason_code: ReasonCode | None = None
@@ -32,8 +33,14 @@ class InterpretedMessage(BaseModel):
         return self
 
 
+class InterpretationContextMessage(BaseModel):
+    role: str = Field(pattern=r"^(participant|khlim|system)$")
+    text: str = Field(min_length=1)
+
+
 class InterpretationRequest(BaseModel):
     message_text: str = Field(min_length=1)
     channel: str
     event_id: str | None = None
     conversation_id: str | None = None
+    recent_messages: list[InterpretationContextMessage] = Field(default_factory=list)
