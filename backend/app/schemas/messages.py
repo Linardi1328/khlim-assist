@@ -3,7 +3,13 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.enums import ContentType, LanguageCode, MessageDirection, SenderType
+from app.schemas.enums import (
+    ContentType,
+    LanguageCode,
+    MessageDeliveryStatus,
+    MessageDirection,
+    SenderType,
+)
 
 
 class MessageBase(BaseModel):
@@ -14,6 +20,10 @@ class MessageBase(BaseModel):
     language: LanguageCode | None = None
     content_type: ContentType = ContentType.TEXT
     text_content: str | None = None
+    delivery_status: MessageDeliveryStatus | None = None
+    delivery_status_updated_at: datetime | None = None
+    provider_error_code: str | None = Field(default=None, max_length=80)
+    provider_error_message: str | None = Field(default=None, max_length=500)
 
 
 class MessageCreate(MessageBase):

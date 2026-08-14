@@ -16,10 +16,18 @@ class Settings(BaseSettings):
 
     openai_api_key: str | None = None
 
+    meta_graph_api_base_url: str = "https://graph.facebook.com"
+    meta_graph_api_version: str | None = None
+    meta_waba_id: str | None = None
     meta_verify_token: str | None = None
     meta_access_token: str | None = None
     meta_phone_number_id: str | None = None
     meta_app_secret: str | None = None
+
+    whatsapp_sandbox_mode: bool = True
+    whatsapp_outbound_enabled: bool = False
+    whatsapp_allowed_recipients: tuple[str, ...] = ()
+    whatsapp_request_timeout_seconds: float = 10.0
 
     active_event_id: UUID | None = None
 
@@ -33,6 +41,8 @@ class Settings(BaseSettings):
 
     @field_validator(
         "openai_api_key",
+        "meta_graph_api_version",
+        "meta_waba_id",
         "meta_verify_token",
         "meta_access_token",
         "meta_phone_number_id",
@@ -43,6 +53,17 @@ class Settings(BaseSettings):
     def blank_secret_to_none(cls, value: object) -> object:
         if isinstance(value, str) and not value.strip():
             return None
+        return value
+
+    @field_validator("whatsapp_allowed_recipients", mode="before")
+    @classmethod
+    def parse_allowed_recipients(cls, value: object) -> object:
+        if value is None:
+            return ()
+        if isinstance(value, str):
+            if not value.strip():
+                return ()
+            return tuple(item.strip() for item in value.split(",") if item.strip())
         return value
 
     @field_validator("database_url", mode="before")
