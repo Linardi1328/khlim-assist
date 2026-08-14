@@ -86,7 +86,6 @@ class OpenAIProvider:
             response = await self._create_response(
                 instructions=INTERPRETATION_SYSTEM_PROMPT,
                 input_text=json.dumps(payload, ensure_ascii=False),
-                temperature=0,
                 text_format={
                     "type": "json_schema",
                     "name": "khlim_interpreted_message",
@@ -126,7 +125,6 @@ class OpenAIProvider:
             response = await self._create_response(
                 instructions=RESPONSE_STYLE_SYSTEM_PROMPT,
                 input_text=json.dumps(payload, ensure_ascii=False),
-                temperature=0.2,
             )
         except AIProviderResponseError:
             raise
@@ -150,7 +148,6 @@ class OpenAIProvider:
         *,
         instructions: str,
         input_text: str,
-        temperature: float,
         text_format: dict[str, object] | None = None,
     ) -> object:
         if not self.model:
@@ -159,7 +156,6 @@ class OpenAIProvider:
             "model": self.model,
             "instructions": instructions,
             "input": input_text,
-            "temperature": temperature,
             "store": False,
             "background": False,
             "tools": [],
