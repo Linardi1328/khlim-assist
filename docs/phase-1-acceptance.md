@@ -19,7 +19,7 @@
 - [x] ruff passes
 - [x] mypy passes
 - [x] pytest passes
-- [ ] CI passes
+- [x] CI passes
 - [x] no secrets in repository
 - [x] no real participant PII
 
