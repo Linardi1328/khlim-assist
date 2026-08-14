@@ -1,0 +1,21 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "sample_business_account",
+      "changes": [
+        {
+          "field": "messages",
+          "value": {
+            "statuses": [
+              {
+                "id": "wamid.sample_status_001",
+                "status": "delivered"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

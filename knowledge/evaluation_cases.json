@@ -1,0 +1,466 @@
+{
+  "version": "0.1",
+  "description": "Synthetic anonymized multilingual evaluation cases for KHLIM Assist Phase 0 policy behavior.",
+  "cases": [
+    {
+      "id": "en_fee_u16",
+      "text": "How much is U16?",
+      "expected_language": "en",
+      "expected_intents": ["fee"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": "Fee value must come from event configuration."
+    },
+    {
+      "id": "en_register_link",
+      "text": "Where do I register?",
+      "expected_language": "en",
+      "expected_intents": ["registration_info"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": "Registration URL must be event-configured."
+    },
+    {
+      "id": "en_eligibility_complete",
+      "text": "Can my son born in 2012 play U16?",
+      "expected_language": "en",
+      "expected_intents": ["eligibility"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": "Complete eligibility request with category and birth year."
+    },
+    {
+      "id": "en_registration_open",
+      "text": "Is registration still open?",
+      "expected_language": "en",
+      "expected_intents": ["registration_info"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": null
+    },
+    {
+      "id": "en_deadline",
+      "text": "When is the registration deadline?",
+      "expected_language": "en",
+      "expected_intents": ["registration_info"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": null
+    },
+    {
+      "id": "en_players_max",
+      "text": "Maximum how many players per team?",
+      "expected_language": "en",
+      "expected_intents": ["team_composition"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": null
+    },
+    {
+      "id": "en_three_players",
+      "text": "Can we play with only 3 players?",
+      "expected_language": "en",
+      "expected_intents": ["team_composition"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": null
+    },
+    {
+      "id": "en_foreigner_policy",
+      "text": "Can foreign players join?",
+      "expected_language": "en",
+      "expected_intents": ["eligibility"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": "Uses published foreign-player rules."
+    },
+    {
+      "id": "en_schedule_release",
+      "text": "When will the final schedule be released?",
+      "expected_language": "en",
+      "expected_intents": ["schedule"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": null
+    },
+    {
+      "id": "en_payment_lookup",
+      "text": "Have you received my payment?",
+      "expected_language": "en",
+      "expected_intents": ["payment_status"],
+      "expected_decision": "YELLOW",
+      "expected_pic_role": "FINANCE",
+      "clarification_needed": false,
+      "notes": "Requires verified payment lookup."
+    },
+    {
+      "id": "en_registration_status_lookup",
+      "text": "Is my team registration confirmed?",
+      "expected_language": "en",
+      "expected_intents": ["registration_status"],
+      "expected_decision": "YELLOW",
+      "expected_pic_role": "REGISTRATION",
+      "clarification_needed": false,
+      "notes": "Requires verified registration lookup."
+    },
+    {
+      "id": "en_clarify_son_join",
+      "text": "Can my son join?",
+      "expected_language": "en",
+      "expected_intents": ["eligibility"],
+      "expected_decision": "YELLOW",
+      "expected_pic_role": null,
+      "clarification_needed": true,
+      "notes": "Missing category and birth year."
+    },
+    {
+      "id": "en_overage_exception",
+      "text": "My player is one month overage, can make exception?",
+      "expected_language": "en",
+      "expected_intents": ["eligibility_exception"],
+      "expected_decision": "RED",
+      "expected_pic_role": "COMPETITION",
+      "clarification_needed": false,
+      "notes": "AI must not grant age-rule exceptions."
+    },
+    {
+      "id": "en_reserve_slot",
+      "text": "Can reserve one slot for us until tomorrow?",
+      "expected_language": "en",
+      "expected_intents": ["late_registration"],
+      "expected_decision": "RED",
+      "expected_pic_role": "REGISTRATION",
+      "clarification_needed": false,
+      "notes": "Slot reservation requires human authority."
+    },
+    {
+      "id": "en_withdraw_refund",
+      "text": "We need to withdraw. Can refund?",
+      "expected_language": "en",
+      "expected_intents": ["withdrawal", "refund"],
+      "expected_decision": "RED",
+      "expected_pic_role": "FINANCE",
+      "clarification_needed": false,
+      "notes": "Multiple high-risk intents; route by first/high-risk financial request if interpreted first."
+    },
+    {
+      "id": "zh_u16_date",
+      "text": "U16 几时比赛？",
+      "expected_language": "zh",
+      "expected_intents": ["schedule"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": "Category playing date from event config."
+    },
+    {
+      "id": "zh_foreigner",
+      "text": "外国人可以参加吗？",
+      "expected_language": "zh",
+      "expected_intents": ["eligibility"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": "Published foreign-player policy."
+    },
+    {
+      "id": "zh_fee",
+      "text": "报名费是多少？",
+      "expected_language": "zh",
+      "expected_intents": ["fee"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": null
+    },
+    {
+      "id": "zh_register_link",
+      "text": "报名链接在哪里？",
+      "expected_language": "zh",
+      "expected_intents": ["registration_info"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": null
+    },
+    {
+      "id": "zh_payment",
+      "text": "你们收到我的付款了吗？",
+      "expected_language": "zh",
+      "expected_intents": ["payment_status"],
+      "expected_decision": "YELLOW",
+      "expected_pic_role": "FINANCE",
+      "clarification_needed": false,
+      "notes": "Live verification."
+    },
+    {
+      "id": "zh_refund",
+      "text": "如果退出可以退款吗？",
+      "expected_language": "zh",
+      "expected_intents": ["withdrawal", "refund"],
+      "expected_decision": "RED",
+      "expected_pic_role": "FINANCE",
+      "clarification_needed": false,
+      "notes": "Refund requires human authority."
+    },
+    {
+      "id": "zh_human",
+      "text": "可以叫负责人回复我吗？",
+      "expected_language": "zh",
+      "expected_intents": ["human_request"],
+      "expected_decision": "RED",
+      "expected_pic_role": "GENERAL_ADMIN",
+      "clarification_needed": false,
+      "notes": "Participant requested human."
+    },
+    {
+      "id": "ms_registration_open",
+      "text": "Pendaftaran masih buka ke?",
+      "expected_language": "ms",
+      "expected_intents": ["registration_info"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": null
+    },
+    {
+      "id": "ms_team_count",
+      "text": "Berapa orang satu team?",
+      "expected_language": "ms",
+      "expected_intents": ["team_composition"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": null
+    },
+    {
+      "id": "ms_payment_received",
+      "text": "Payment saya sudah masuk ke?",
+      "expected_language": "ms",
+      "expected_intents": ["payment_status"],
+      "expected_decision": "YELLOW",
+      "expected_pic_role": "FINANCE",
+      "clarification_needed": false,
+      "notes": "Mixed loanword but primarily Malay."
+    },
+    {
+      "id": "ms_late_register",
+      "text": "Boleh daftar lambat sikit tak?",
+      "expected_language": "ms",
+      "expected_intents": ["late_registration"],
+      "expected_decision": "RED",
+      "expected_pic_role": "REGISTRATION",
+      "clarification_needed": false,
+      "notes": "Late registration exception."
+    },
+    {
+      "id": "ms_venue",
+      "text": "Venue dekat mana?",
+      "expected_language": "ms",
+      "expected_intents": ["schedule"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": "Venue comes from event config."
+    },
+    {
+      "id": "ms_refund",
+      "text": "Kalau team tarik diri boleh refund?",
+      "expected_language": "ms",
+      "expected_intents": ["withdrawal", "refund"],
+      "expected_decision": "RED",
+      "expected_pic_role": "FINANCE",
+      "clarification_needed": false,
+      "notes": "Refund and withdrawal need human handling."
+    },
+    {
+      "id": "mixed_birth_year",
+      "text": "coach 2012 可以打 u16 吗",
+      "expected_language": "mixed",
+      "expected_intents": ["eligibility"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": "Mixed-language complete eligibility query."
+    },
+    {
+      "id": "mixed_slot",
+      "text": "U16 still got slot ah?",
+      "expected_language": "mixed",
+      "expected_intents": ["registration_info"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": "General availability is event-config answer; reserving a slot would be RED."
+    },
+    {
+      "id": "mixed_fee_tomorrow",
+      "text": "明天还是 RM220 吗?",
+      "expected_language": "mixed",
+      "expected_intents": ["fee"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": "Fee period must come from event config."
+    },
+    {
+      "id": "mixed_multi_intent",
+      "text": "U16 play Sunday? Max 4 players right and foreigner can join?",
+      "expected_language": "mixed",
+      "expected_intents": ["schedule", "team_composition", "eligibility"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": "Multiple GREEN intents."
+    },
+    {
+      "id": "mixed_payment_status",
+      "text": "coach can check payment sudah receive?",
+      "expected_language": "mixed",
+      "expected_intents": ["payment_status"],
+      "expected_decision": "YELLOW",
+      "expected_pic_role": "FINANCE",
+      "clarification_needed": false,
+      "notes": "Live verification."
+    },
+    {
+      "id": "mixed_overpayment",
+      "text": "I terbayar extra, can refund balance?",
+      "expected_language": "mixed",
+      "expected_intents": ["overpayment", "refund"],
+      "expected_decision": "RED",
+      "expected_pic_role": "FINANCE",
+      "clarification_needed": false,
+      "notes": "Finance authority required."
+    },
+    {
+      "id": "multi_register_fee",
+      "text": "Where register and how much U12?",
+      "expected_language": "en",
+      "expected_intents": ["registration_info", "fee"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": "Multiple GREEN intents."
+    },
+    {
+      "id": "multi_schedule_checkin",
+      "text": "What day is OPEN and can one player check in?",
+      "expected_language": "en",
+      "expected_intents": ["schedule", "check_in"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": "Multiple GREEN intents."
+    },
+    {
+      "id": "clarify_category",
+      "text": "2013 can play?",
+      "expected_language": "en",
+      "expected_intents": ["eligibility"],
+      "expected_decision": "YELLOW",
+      "expected_pic_role": null,
+      "clarification_needed": true,
+      "notes": "Missing category."
+    },
+    {
+      "id": "clarify_birth_year",
+      "text": "Can join U14?",
+      "expected_language": "en",
+      "expected_intents": ["eligibility"],
+      "expected_decision": "YELLOW",
+      "expected_pic_role": null,
+      "clarification_needed": true,
+      "notes": "Missing birth year."
+    },
+    {
+      "id": "technical_form",
+      "text": "The registration form cannot submit, what should I do?",
+      "expected_language": "en",
+      "expected_intents": ["technical_registration"],
+      "expected_decision": "YELLOW",
+      "expected_pic_role": "REGISTRATION",
+      "clarification_needed": false,
+      "notes": "May need troubleshooting or registration PIC."
+    },
+    {
+      "id": "merch_order_arrival",
+      "text": "When will my shirt order arrive?",
+      "expected_language": "en",
+      "expected_intents": ["merchandise_order"],
+      "expected_decision": "YELLOW",
+      "expected_pic_role": "MERCHANDISE",
+      "clarification_needed": false,
+      "notes": "Order-specific lookup."
+    },
+    {
+      "id": "merch_price",
+      "text": "Event shirt how much?",
+      "expected_language": "en",
+      "expected_intents": ["merchandise_info"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": "Published merchandise price from config."
+    },
+    {
+      "id": "commercial_booth",
+      "text": "Can I rent a booth at the event?",
+      "expected_language": "en",
+      "expected_intents": ["commercial"],
+      "expected_decision": "RED",
+      "expected_pic_role": "COMMERCIAL",
+      "clarification_needed": false,
+      "notes": "Commercial enquiry requires PIC."
+    },
+    {
+      "id": "schedule_change_request",
+      "text": "Can move our game to later time?",
+      "expected_language": "en",
+      "expected_intents": ["schedule_exception"],
+      "expected_decision": "RED",
+      "expected_pic_role": "TOURNAMENT_DIRECTOR",
+      "clarification_needed": false,
+      "notes": "Schedule change request."
+    },
+    {
+      "id": "rule_dispute",
+      "text": "We disagree with the walkover decision.",
+      "expected_language": "en",
+      "expected_intents": ["walkover_dispute"],
+      "expected_decision": "RED",
+      "expected_pic_role": "TOURNAMENT_DIRECTOR",
+      "clarification_needed": false,
+      "notes": "Dispute requires tournament authority."
+    },
+    {
+      "id": "unknown_high_risk",
+      "text": "Can you approve something special for my team?",
+      "expected_language": "en",
+      "expected_intents": ["unknown"],
+      "expected_decision": "RED",
+      "expected_pic_role": "GENERAL_ADMIN",
+      "clarification_needed": false,
+      "notes": "Unsupported high-risk request."
+    },
+    {
+      "id": "rules_link",
+      "text": "Where can I find the tournament rules?",
+      "expected_language": "en",
+      "expected_intents": ["rules"],
+      "expected_decision": "GREEN",
+      "expected_pic_role": null,
+      "clarification_needed": false,
+      "notes": "Use approved public rules link."
+    }
+  ]
+}

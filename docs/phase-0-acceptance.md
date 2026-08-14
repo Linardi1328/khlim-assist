@@ -1,0 +1,31 @@
+# Phase 0 Acceptance Checklist
+
+- [ ] FastAPI app starts
+- [ ] PostgreSQL connection works
+- [ ] migrations work
+- [ ] health endpoint works
+- [ ] schemas validate
+- [ ] models persist
+- [ ] WhatsApp webhook parser works with fixtures
+- [ ] no live replies are sent
+- [ ] knowledge files validate
+- [ ] FAQ taxonomy exists
+- [ ] response style exists
+- [ ] escalation policy exists
+- [ ] decision engine passes tests
+- [ ] PIC routing passes tests
+- [ ] evaluation cases validate
+- [ ] English examples exist
+- [ ] Malay examples exist
+- [ ] Mandarin examples exist
+- [ ] mixed-language examples exist
+- [ ] multi-intent examples exist
+- [ ] clarification examples exist
+- [ ] escalation examples exist
+- [ ] no real participant PII exists
+- [ ] `.env` is ignored
+- [ ] no credentials exist in source
+- [ ] `pytest` passes
+- [ ] `ruff` passes
+- [ ] `mypy` passes
+- [ ] README is complete

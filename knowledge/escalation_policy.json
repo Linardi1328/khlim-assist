@@ -1,0 +1,125 @@
+{
+  "version": "0.1",
+  "reasons": [
+    {
+      "reason_code": "REGISTRATION_EXCEPTION",
+      "decision_level": "RED",
+      "pic_role": "REGISTRATION",
+      "auto_reply_allowed": false,
+      "requires_human": true,
+      "suggested_acknowledgement_type": "human_handoff_acknowledgement"
+    },
+    {
+      "reason_code": "REGISTRATION_STATUS_LOOKUP",
+      "decision_level": "YELLOW",
+      "pic_role": "REGISTRATION",
+      "auto_reply_allowed": false,
+      "requires_human": false,
+      "suggested_acknowledgement_type": "lookup_needed_acknowledgement"
+    },
+    {
+      "reason_code": "PAYMENT_VERIFICATION",
+      "decision_level": "YELLOW",
+      "pic_role": "FINANCE",
+      "auto_reply_allowed": false,
+      "requires_human": false,
+      "suggested_acknowledgement_type": "lookup_needed_acknowledgement"
+    },
+    {
+      "reason_code": "REFUND_REQUEST",
+      "decision_level": "RED",
+      "pic_role": "FINANCE",
+      "auto_reply_allowed": false,
+      "requires_human": true,
+      "suggested_acknowledgement_type": "human_handoff_acknowledgement"
+    },
+    {
+      "reason_code": "OVERPAYMENT",
+      "decision_level": "RED",
+      "pic_role": "FINANCE",
+      "auto_reply_allowed": false,
+      "requires_human": true,
+      "suggested_acknowledgement_type": "human_handoff_acknowledgement"
+    },
+    {
+      "reason_code": "ELIGIBILITY_EXCEPTION",
+      "decision_level": "RED",
+      "pic_role": "COMPETITION",
+      "auto_reply_allowed": false,
+      "requires_human": true,
+      "suggested_acknowledgement_type": "human_handoff_acknowledgement"
+    },
+    {
+      "reason_code": "RULE_DISPUTE",
+      "decision_level": "RED",
+      "pic_role": "COMPETITION",
+      "auto_reply_allowed": false,
+      "requires_human": true,
+      "suggested_acknowledgement_type": "human_handoff_acknowledgement"
+    },
+    {
+      "reason_code": "SCHEDULE_EXCEPTION",
+      "decision_level": "RED",
+      "pic_role": "TOURNAMENT_DIRECTOR",
+      "auto_reply_allowed": false,
+      "requires_human": true,
+      "suggested_acknowledgement_type": "human_handoff_acknowledgement"
+    },
+    {
+      "reason_code": "WITHDRAWAL",
+      "decision_level": "RED",
+      "pic_role": "TOURNAMENT_DIRECTOR",
+      "auto_reply_allowed": false,
+      "requires_human": true,
+      "suggested_acknowledgement_type": "human_handoff_acknowledgement"
+    },
+    {
+      "reason_code": "WALKOVER_DISPUTE",
+      "decision_level": "RED",
+      "pic_role": "TOURNAMENT_DIRECTOR",
+      "auto_reply_allowed": false,
+      "requires_human": true,
+      "suggested_acknowledgement_type": "human_handoff_acknowledgement"
+    },
+    {
+      "reason_code": "MERCHANDISE_ORDER_LOOKUP",
+      "decision_level": "YELLOW",
+      "pic_role": "MERCHANDISE",
+      "auto_reply_allowed": false,
+      "requires_human": false,
+      "suggested_acknowledgement_type": "lookup_needed_acknowledgement"
+    },
+    {
+      "reason_code": "TECHNICAL_REGISTRATION_FAILURE",
+      "decision_level": "YELLOW",
+      "pic_role": "REGISTRATION",
+      "auto_reply_allowed": false,
+      "requires_human": false,
+      "suggested_acknowledgement_type": "clarify_issue_acknowledgement"
+    },
+    {
+      "reason_code": "COMMERCIAL_ENQUIRY",
+      "decision_level": "RED",
+      "pic_role": "COMMERCIAL",
+      "auto_reply_allowed": false,
+      "requires_human": true,
+      "suggested_acknowledgement_type": "human_handoff_acknowledgement"
+    },
+    {
+      "reason_code": "HUMAN_REQUESTED",
+      "decision_level": "RED",
+      "pic_role": "GENERAL_ADMIN",
+      "auto_reply_allowed": false,
+      "requires_human": true,
+      "suggested_acknowledgement_type": "human_handoff_acknowledgement"
+    },
+    {
+      "reason_code": "UNKNOWN_HIGH_RISK",
+      "decision_level": "RED",
+      "pic_role": "GENERAL_ADMIN",
+      "auto_reply_allowed": false,
+      "requires_human": true,
+      "suggested_acknowledgement_type": "human_handoff_acknowledgement"
+    }
+  ]
+}

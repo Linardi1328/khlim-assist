@@ -1,0 +1,31 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "sample_business_account",
+      "changes": [
+        {
+          "field": "messages",
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": {
+              "display_phone_number": "SAMPLE_ONLY",
+              "phone_number_id": "sample_phone_number_id"
+            },
+            "messages": [
+              {
+                "from": "anon_whatsapp_user_001",
+                "id": "wamid.sample_message_001",
+                "timestamp": "sample_timestamp",
+                "type": "text",
+                "text": {
+                  "body": "Where do I register?"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

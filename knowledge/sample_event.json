@@ -1,0 +1,83 @@
+{
+  "sample_notice": "SAMPLE / NON-PRODUCTION DATA",
+  "event_name": "KHLIM Sample 3x3 Basketball Challenge",
+  "venue": "Sample Community Sports Hall",
+  "event_dates": ["2027-06-12", "2027-06-13"],
+  "registration_open": true,
+  "registration_deadline": "2027-05-31T23:59:00+08:00",
+  "registration_url": "https://example.com/khlim-sample-registration",
+  "category_fees": [
+    {
+      "category": "U12",
+      "amount_myr": 120,
+      "label": "Sample fee only"
+    },
+    {
+      "category": "U16",
+      "amount_myr": 180,
+      "label": "Sample fee only"
+    },
+    {
+      "category": "OPEN",
+      "amount_myr": 220,
+      "label": "Sample fee only"
+    }
+  ],
+  "category_playing_dates": [
+    {
+      "category": "U12",
+      "playing_date": "2027-06-12"
+    },
+    {
+      "category": "U16",
+      "playing_date": "2027-06-13"
+    },
+    {
+      "category": "OPEN",
+      "playing_date": "2027-06-13"
+    }
+  ],
+  "player_count_rules": {
+    "minimum_players": 3,
+    "maximum_players": 4
+  },
+  "eligibility_rules": [
+    {
+      "category": "U12",
+      "rule_type": "minimum_birth_year",
+      "value": {
+        "birth_year": 2015
+      }
+    },
+    {
+      "category": "U16",
+      "rule_type": "minimum_birth_year",
+      "value": {
+        "birth_year": 2011
+      }
+    }
+  ],
+  "foreign_player_rules": {
+    "permitted": true,
+    "maximum_foreign_players": 1,
+    "notes": "Sample rule only; not official KHLIM policy."
+  },
+  "check_in_rules": {
+    "whole_team_required": false,
+    "one_player_can_check_in": true,
+    "notes": "Sample check-in rule only."
+  },
+  "merchandise": {
+    "included_in_registration": false,
+    "preorder_deadline": "2027-05-20T23:59:00+08:00",
+    "items": [
+      {
+        "item": "Sample event shirt",
+        "price_myr": 45,
+        "sizes": ["YS", "YM", "YL", "S", "M", "L", "XL"]
+      }
+    ],
+    "delivery_notes": "Sample delivery configuration only."
+  },
+  "notes": "All values in this file are fake sample data for local development and tests. They must not be treated as official KHLIM event information."
+}
