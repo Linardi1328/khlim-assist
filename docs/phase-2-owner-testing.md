@@ -36,15 +36,46 @@ export GROQ_MODEL="openai/gpt-oss-120b"
 export AI_PROCESSING_ENABLED=true
 export AI_SHADOW_MODE=true
 export AI_AUTO_REPLY_ENABLED=false
+export WHATSAPP_OUTBOUND_ENABLED=false
 ```
 
-Run owner-only live Groq structured eval:
+### Required Phase 2.1 owner-live compatibility smoke
+
+Run the representative live subset:
 
 ```bash
-python -m app.scripts.ai_eval --provider groq
+python -m app.scripts.ai_eval --provider groq --owner-smoke
 ```
 
-Report actual metrics. Do not claim Groq quality is approved until owner live evaluation passes.
+The owner-smoke mode uses six existing synthetic evaluation cases covering GREEN, YELLOW, RED, multilingual, mixed/multi-intent, clarification, and high-risk routing behavior. For Groq it defaults to a conservative 30-second delay between cases to reduce free-tier rate-limit pressure. The CLI prints per-case progress so a slow or rate-limited request is visible.
+
+Expected:
+
+- all six requests reach Groq successfully
+- no JSON-schema compatibility error occurs
+- structured metrics are printed after the six cases complete
+- a provider 429 is reported as an incomplete owner gate, not as a passing result
+- no WhatsApp message is sent
+
+If the account still reaches a rate limit, inspect the account limits and rerun later with a larger explicit delay, for example:
+
+```bash
+python -m app.scripts.ai_eval --provider groq --owner-smoke --delay-seconds 45
+```
+
+Do not claim the owner-live compatibility gate passed unless the smoke command completes and prints metrics.
+
+### Full-corpus live Groq quality benchmark
+
+The full corpus remains available for provider-quality benchmarking:
+
+```bash
+python -m app.scripts.ai_eval --provider groq --delay-seconds 30
+```
+
+This can take many minutes on a free-tier account and may still hit organization-level request or token limits depending on recent usage. It is required before claiming full-corpus Groq quality approval, but it is separate from the Phase 2.1 shadow-only provider compatibility smoke. Do not enable automatic replies based on a smoke result.
+
+Report actual metrics. Do not claim production accuracy from synthetic fixtures.
 
 ## Live OpenAI Verification
 
@@ -60,6 +91,7 @@ export OPENAI_MODEL="<SUPPORTED_MODEL_ID>"
 export AI_PROCESSING_ENABLED=true
 export AI_SHADOW_MODE=true
 export AI_AUTO_REPLY_ENABLED=false
+export WHATSAPP_OUTBOUND_ENABLED=false
 ```
 
 Run the API or create local synthetic messages through a test fixture/script. Then process one stored message:
