@@ -22,6 +22,7 @@ Expected:
 - tests pass without Groq credentials
 - deterministic evaluation prints structured metrics
 - no WhatsApp message is sent by AI processing
+- human-required decisions use deterministic acknowledgement drafts and never claim that a PIC was contacted, a request was forwarded, or a follow-up was scheduled
 
 ## Live Groq Verification
 
@@ -108,6 +109,8 @@ Decision: GREEN / YELLOW / RED
 Draft: <stored draft>
 Sent to WhatsApp: NO
 ```
+
+For RED/human-required decisions, the draft must be a deterministic acknowledgement that says review is needed without claiming that a handoff, forwarding action, or future follow-up has already been initiated.
 
 Inspect recent analyses:
 
