@@ -1,4 +1,6 @@
+import asyncio
 from collections import Counter
+from collections.abc import Callable
 
 from pydantic import BaseModel
 
@@ -43,10 +45,20 @@ class EvaluationReport(BaseModel):
 async def run_evaluation(
     cases: list[EvaluationCase],
     provider: AIProvider,
+    *,
+    progress_callback: Callable[[int, int, EvaluationCase], None] | None = None,
+    delay_seconds: float = 0.0,
 ) -> EvaluationReport:
+    if delay_seconds < 0:
+        raise ValueError("delay_seconds cannot be negative")
+
     results: list[EvaluationCaseResult] = []
     engine = DecisionEngine()
-    for case in cases:
+    total_cases = len(cases)
+    for index, case in enumerate(cases, start=1):
+        if progress_callback is not None:
+            progress_callback(index, total_cases, case)
+
         interpreted = await provider.interpret_message(
             InterpretationRequest(message_text=case.text, channel="evaluation")
         )
@@ -74,6 +86,9 @@ async def run_evaluation(
                 predicted_pic_role=predicted_pic.value if predicted_pic else None,
             )
         )
+
+        if delay_seconds > 0 and index < total_cases:
+            await asyncio.sleep(delay_seconds)
 
     return EvaluationReport(metrics=_metrics(results), cases=results)
 

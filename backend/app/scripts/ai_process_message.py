@@ -2,8 +2,7 @@ import argparse
 import asyncio
 from uuid import UUID
 
-from app.ai.fake import FakeAIProvider
-from app.ai.openai_client import OpenAIProvider
+from app.ai.providers import create_ai_provider, provider_choices
 from app.config.settings import get_settings
 from app.db.session import AsyncSessionLocal
 from app.services.ai_processing import AIProcessingService
@@ -19,9 +18,9 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--provider",
-        choices=["openai", "fake"],
-        default="openai",
-        help="AI provider to use. fake is deterministic and CI-safe.",
+        choices=provider_choices(),
+        default=None,
+        help="AI provider to use. Defaults to AI_PROVIDER. fake is deterministic and CI-safe.",
     )
     return parser.parse_args()
 
@@ -29,7 +28,7 @@ def parse_args() -> argparse.Namespace:
 async def main() -> None:
     args = parse_args()
     settings = get_settings()
-    provider = FakeAIProvider() if args.provider == "fake" else OpenAIProvider(settings)
+    provider = create_ai_provider(settings, args.provider)
     service = AIProcessingService(provider=provider, settings=settings)
 
     async with AsyncSessionLocal() as session:

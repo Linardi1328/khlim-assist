@@ -55,6 +55,7 @@ async def test_openai_provider_successful_structured_interpretation() -> None:
     assert responses.calls[0]["background"] is False
     assert responses.calls[0]["tools"] == []
     assert responses.calls[0]["model"] == "test-model"
+    assert "temperature" not in responses.calls[0]
     text_config = responses.calls[0]["text"]
     assert isinstance(text_config, dict)
     format_config = text_config["format"]
@@ -106,6 +107,9 @@ async def test_openai_provider_successful_response_generation() -> None:
     assert generated.text == "Hi! Approved draft 😊"
     assert generated.should_send is False
     assert responses.calls[0]["store"] is False
+    assert responses.calls[0]["background"] is False
+    assert responses.calls[0]["tools"] == []
+    assert "temperature" not in responses.calls[0]
 
 
 @pytest.mark.asyncio

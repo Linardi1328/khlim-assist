@@ -7,6 +7,12 @@ class AppEnvironment(StrEnum):
     PRODUCTION = "production"
 
 
+class AIProviderName(StrEnum):
+    FAKE = "fake"
+    OPENAI = "openai"
+    GROQ = "groq"
+
+
 class EventStatus(StrEnum):
     DRAFT = "DRAFT"
     PUBLISHED = "PUBLISHED"

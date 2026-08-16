@@ -132,9 +132,14 @@ Do not add real production secrets to source control.
 - `APP_NAME`
 - `LOG_LEVEL`
 - `DATABASE_URL`
+- `AI_PROVIDER`
 - `OPENAI_API_KEY`
 - `OPENAI_MODEL`
 - `OPENAI_REQUEST_TIMEOUT_SECONDS`
+- `GROQ_API_KEY`
+- `GROQ_MODEL`
+- `GROQ_API_BASE_URL`
+- `GROQ_REQUEST_TIMEOUT_SECONDS`
 - `AI_PROCESSING_ENABLED`
 - `AI_SHADOW_MODE`
 - `AI_AUTO_REPLY_ENABLED`
@@ -151,7 +156,21 @@ Do not add real production secrets to source control.
 - `WHATSAPP_ALLOWED_RECIPIENTS`
 - `ACTIVE_EVENT_ID`
 
-Blank Meta/OpenAI values are allowed in local and test mode. Calling credential-required functionality without credentials fails gracefully.
+Blank Meta/OpenAI/Groq values are allowed in local and test mode. Calling credential-required functionality without credentials fails gracefully.
+
+## AI Providers
+
+`AI_PROVIDER` defaults to `groq` for zero-budget development evaluation. OpenAI remains available as an optional paid provider, and `fake` is the deterministic local/CI provider.
+
+```text
+AI_PROVIDER=groq
+GROQ_MODEL=openai/gpt-oss-120b
+GROQ_API_BASE_URL=https://api.groq.com/openai/v1
+```
+
+Do not configure `fake` for production. AI processing remains disabled by default, and Phase 2/2.1 stores draft responses only.
+
+See [docs/phase-2-1-provider-portability.md](docs/phase-2-1-provider-portability.md) for Groq live evaluation, data privacy, and free-tier notes.
 
 ## Database
 
@@ -243,10 +262,14 @@ Process one stored message through Phase 2 shadow analysis:
 python -m app.scripts.ai_process_message --message-id "<MESSAGE_UUID>"
 ```
 
-Use the deterministic local provider for synthetic testing:
+Without `--provider`, this uses `AI_PROVIDER`.
+
+Use an explicit provider when needed:
 
 ```bash
 python -m app.scripts.ai_process_message --message-id "<MESSAGE_UUID>" --provider fake
+python -m app.scripts.ai_process_message --message-id "<MESSAGE_UUID>" --provider groq
+python -m app.scripts.ai_process_message --message-id "<MESSAGE_UUID>" --provider openai
 ```
 
 Inspect recent AI analyses:
@@ -261,6 +284,13 @@ Run deterministic evaluation fixtures:
 python -m app.scripts.ai_eval --provider fake
 ```
 
+Run owner-only live provider evaluation after local credentials are configured:
+
+```bash
+python -m app.scripts.ai_eval --provider groq
+python -m app.scripts.ai_eval --provider openai
+```
+
 All Phase 2 AI outputs are stored drafts only. `AI_AUTO_REPLY_ENABLED=true` does not connect drafts to WhatsApp outbound sending in Phase 2.
 
 ## Privacy Principles
@@ -269,6 +299,7 @@ All Phase 2 AI outputs are stored drafts only. `AI_AUTO_REPLY_ENABLED=true` does
 - Do not commit real API keys, access tokens, phone numbers, participant identities, IC/passport numbers, payment details, or raw WhatsApp conversations.
 - Use only anonymized or synthetic examples in tests and knowledge fixtures.
 - Avoid logging raw sensitive participant content.
+- Enable Groq Zero Data Retention in Groq Data Controls before evaluating real participant conversations through Groq.
 
 ## Decision Levels
 
@@ -278,8 +309,8 @@ All Phase 2 AI outputs are stored drafts only. `AI_AUTO_REPLY_ENABLED=true` does
 
 ## Current Limitations
 
-Phase 2 does not implement live automatic WhatsApp replies, production OpenAI background processing, human handoff workflow, PIC dashboard, registration lookup, payment lookup, Instagram integration, voice-note transcription, OCR, merchandise stock lookup, participant frontend, refunds, schedule changes, production deployment, marketing sends, broadcasts, or autonomous workflows.
+Phase 2/2.1 does not implement live automatic WhatsApp replies, production background processing, human handoff workflow, PIC dashboard, registration lookup, payment lookup, Instagram integration, voice-note transcription, OCR, merchandise stock lookup, participant frontend, refunds, schedule changes, production deployment, marketing sends, broadcasts, or autonomous workflows.
 
 ## Next Planned Phase
 
-The next phase should build the human handoff workflow and reviewer-approved operational controls. Do not begin it until Phase 2 owner live OpenAI testing and review are complete.
+The next phase should build the human handoff workflow and reviewer-approved operational controls. Do not begin it until Phase 2.1 provider portability review and owner live provider evaluation are complete.

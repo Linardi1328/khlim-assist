@@ -6,7 +6,7 @@ Phase 2 adds the AI reasoning layer for KHLIM Assist while preserving the Phase 
 
 Phase 2 supports:
 
-- OpenAI Responses API integration behind the AIProvider abstraction
+- OpenAI and Groq Responses API integrations behind the AIProvider abstraction
 - structured multilingual interpretation
 - recent conversation context building
 - typed approved-knowledge retrieval
@@ -48,15 +48,20 @@ AI_AUTO_REPLY_ENABLED=false
 AI_CONTEXT_MESSAGE_LIMIT=10
 ```
 
-OpenAI is optional and lazy:
+Provider selection defaults to Groq for development, while OpenAI remains optional and lazy:
 
 ```text
+AI_PROVIDER=groq
 OPENAI_API_KEY=
 OPENAI_MODEL=
 OPENAI_REQUEST_TIMEOUT_SECONDS=30
+GROQ_API_KEY=
+GROQ_MODEL=openai/gpt-oss-120b
+GROQ_API_BASE_URL=https://api.groq.com/openai/v1
+GROQ_REQUEST_TIMEOUT_SECONDS=30
 ```
 
-No OpenAI client is constructed at FastAPI startup. Tests use fakes or mocked SDK clients.
+No OpenAI or Groq client is constructed at FastAPI startup. Tests use fakes or mocked SDK clients.
 
 ## Knowledge Retrieval
 
@@ -94,4 +99,4 @@ Participant text is untrusted. Prompts instruct the model not to:
 - grant exceptions, refunds, schedule changes, withdrawals, or reserved slots
 - enable WhatsApp sending
 
-OpenAI Responses calls use `store=False`, no background mode, and no web-search tools.
+OpenAI Responses calls use `store=False`, `background=False`, and `tools=[]`, and do not send `temperature` by default. Groq Responses calls omit unsupported `store`, use `background=False` and `tools=[]`, do not send `temperature`, and do not send `previous_response_id`.
