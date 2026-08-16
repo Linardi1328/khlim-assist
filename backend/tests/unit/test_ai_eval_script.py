@@ -2,13 +2,13 @@ import argparse
 import json
 from pathlib import Path
 
+from app.schemas.knowledge import EvaluationCasesFile
 from app.scripts.ai_eval import (
     DEFAULT_GROQ_OWNER_SMOKE_DELAY_SECONDS,
     OWNER_LIVE_SMOKE_CASE_IDS,
     _effective_delay_seconds,
     _select_cases,
 )
-from app.schemas.knowledge import EvaluationCasesFile
 
 
 def _fixture() -> EvaluationCasesFile:
