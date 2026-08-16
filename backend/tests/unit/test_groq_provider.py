@@ -116,10 +116,20 @@ async def test_groq_provider_successful_structured_interpretation() -> None:
     schema = format_config["schema"]
     assert isinstance(schema, dict)
     assert schema["additionalProperties"] is False
-    assert schema["$defs"]["MessageIntent"]["additionalProperties"] is False
-    assert schema["$defs"]["MessageIntent"]["properties"]["entities"][
-        "additionalProperties"
-    ] is False
+    intent_schema = schema["$defs"]["MessageIntent"]
+    assert intent_schema["additionalProperties"] is False
+    intent_properties = intent_schema["properties"]
+    for field_name in ("category", "knowledge_topic", "reason_code"):
+        nullable_field = intent_properties[field_name]
+        assert "anyOf" not in nullable_field
+        assert nullable_field["type"] == ["string", "null"]
+    assert None in intent_properties["knowledge_topic"]["enum"]
+    assert None in intent_properties["reason_code"]["enum"]
+    entities_schema = intent_properties["entities"]
+    assert entities_schema["additionalProperties"] is False
+    for entity_schema in entities_schema["properties"].values():
+        assert "anyOf" not in entity_schema
+        assert "null" in entity_schema["type"]
     assert provider.interpretation_metadata is not None
     assert provider.interpretation_metadata.provider_request_id == "resp_groq_synthetic"
     assert provider.interpretation_metadata.total_tokens == 18
