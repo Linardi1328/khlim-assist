@@ -5,8 +5,14 @@ from app.ai.base import (
     ResponseGenerationRequest,
 )
 from app.ai.responder import ResponseGenerator
-from app.schemas.decision import DecisionResult
-from app.schemas.enums import DecisionLevel, IntentType, KnowledgeTopic, LanguageCode, LanguageMode
+from app.schemas.decision import DecisionResult, JsonValue
+from app.schemas.enums import (
+    DecisionLevel,
+    IntentType,
+    KnowledgeTopic,
+    LanguageCode,
+    LanguageMode,
+)
 from app.schemas.interpretation import InterpretationRequest, InterpretedMessage, MessageIntent
 from app.schemas.retrieval import KnowledgeResult
 
@@ -57,7 +63,7 @@ def _request(
     )
 
 
-def _fee_knowledge(value: object = None) -> KnowledgeResult:
+def _fee_knowledge(value: JsonValue = None) -> KnowledgeResult:
     return KnowledgeResult(
         intent_type=IntentType.FEE,
         knowledge_topic=KnowledgeTopic.CATEGORY_FEE,
