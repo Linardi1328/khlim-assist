@@ -1,5 +1,4 @@
 import pytest
-
 from app.ai.base import (
     AIProviderCallMetadata,
     GeneratedResponse,
