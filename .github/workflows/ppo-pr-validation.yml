@@ -1,0 +1,60 @@
+name: PPO PR validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: khlim_assist_ci
+          POSTGRES_USER: khlim_assist
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U khlim_assist -d khlim_assist_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql+asyncpg://khlim_assist@localhost:5432/khlim_assist_ci
+      POSTGRES_SMOKE_DATABASE_URL: postgresql+asyncpg://khlim_assist@localhost:5432/khlim_assist_ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Node syntax checks
+        shell: bash
+        run: |
+          while IFS= read -r -d '' file; do node --check "$file"; done < <(find . -path ./.git -prune -o -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \) -print0)
+      - name: Shell syntax checks
+        shell: bash
+        run: |
+          while IFS= read -r -d '' file; do bash -n "$file"; done < <(find . -path ./.git -prune -o -type f -name '*.sh' -print0)
+      - name: Full regression suite
+        run: |
+          ruff check .
+          mypy backend/app
+          alembic upgrade head
+          pytest
+      - name: Diff whitespace checks
+        run: |
+          git diff --check
+          git diff --check origin/main...HEAD
