@@ -28,7 +28,7 @@ def test_settings_accept_active_event_uuid() -> None:
 
 
 def test_phase_1_whatsapp_settings_defaults_are_safe() -> None:
-    settings = Settings()
+    settings = Settings(_env_file=None)
 
     assert settings.meta_graph_api_base_url == "https://graph.facebook.com"
     assert settings.meta_graph_api_version is None
@@ -44,7 +44,7 @@ def test_phase_1_allowed_recipients_parse_comma_separated_values() -> None:
 
 
 def test_phase_2_ai_settings_defaults_are_safe() -> None:
-    settings = Settings()
+    settings = Settings(_env_file=None)
 
     assert settings.ai_provider == AIProviderName.GROQ
     assert settings.openai_model is None

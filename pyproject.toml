@@ -55,7 +55,7 @@ strict = true
 warn_unused_ignores = true
 warn_return_any = true
 show_error_codes = true
-packages = ["app"]
+files = ["backend/app"]
 
 [[tool.mypy.overrides]]
 module = ["alembic.*"]
